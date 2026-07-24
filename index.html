@@ -266,7 +266,7 @@
   }
   .confirm-actions button { flex: 1; }
   @media print {
-    .footer-actions, .meta-row select:last-child, .modal-overlay { display: none; }
+    .footer-actions, .modal-overlay { display: none; }
   }
 </style>
 </head>
@@ -275,10 +275,11 @@
 
   <header>
     <h1>🧹 Cleaning Inventory Checklist</h1>
-    <p>Hi team!<br><br>Thanks for keeping our homes guest-ready.<br><br>Please select the property, walk through each item below, and check it off as you verify it; this helps us know what needs restocking.<br><br>Leave a comment on anything that needs attention, then hit Submit when you're done. 💚</p>
+    <p>Hi team!<br><br>Thanks for keeping our homes guest-ready.<br><br>Please enter the property name, walk through each item below, and check it off as you verify it; this helps us know what needs restocking.<br><br>Leave a comment on anything that needs attention, then hit Submit when you're done. 💚</p>
     <div class="meta-row">
       <input type="text" id="cleanerName" placeholder="Cleaner name">
-      <select id="propertyName"><option value="">-- Select Property --</option></select>
+      <input type="text" id="propertyName" list="propertyOptions" placeholder="Type property name...">
+      <datalist id="propertyOptions"></datalist>
       <input type="date" id="checkDate">
     </div>
   </header>
@@ -718,12 +719,11 @@ function printReport() {
 }
 
 function populatePropertyOptions() {
-  const select = document.getElementById("propertyName");
+  const list = document.getElementById("propertyOptions");
   PROPERTIES.forEach(name => {
     const opt = document.createElement("option");
     opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
+    list.appendChild(opt);
   });
 }
 
