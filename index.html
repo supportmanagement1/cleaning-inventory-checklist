@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cleaning Inventory Checklist</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --done-bg: #f0fdf4;
+    --done-border: #86efac;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  header {
+    background: var(--primary);
+    color: white;
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+  header p { margin: 0; opacity: 0.9; font-size: 0.95rem; }
+  .meta-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .meta-row input, .meta-row select {
+    flex: 1;
+    min-width: 140px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.9rem;
+  }
+  .progress-wrap {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .progress-bar-track {
+    flex: 1;
+    background: #e2e8f0;
+    border-radius: 999px;
+    height: 12px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  #progressText { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+  .section {
+    background: var(--card);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 18px;
+    background: #f8fafc;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-header .count { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
+  .section-body { padding: 6px 10px; }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+  }
+  .item:hover { background: #f8fafc; }
+  .item.checked {
+    background: var(--done-bg);
+  }
+  .item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .item label {
+    flex: 1;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  .item.checked label { text-decoration: line-through; color: var(--muted); }
+  .qty-select {
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    background: white;
+    color: var(--text);
+  }
+  .note-input {
+    width: 100%;
+    margin: 4px 8px 10px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: none;
+  }
+  .note-input.visible { display: block; }
+  .note-toggle {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 4px 6px;
+  }
+  .par-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .par-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .par-input {
+    width: 48px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  @media (max-width: 480px) {
+    .item { flex-wrap: wrap; }
+    .item label { flex-basis: 100%; order: 1; }
+  }
+  .footer-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  button.action {
+    flex: 1;
+    min-width: 140px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: #e2e8f0; color: var(--text); }
+  .btn-secondary:hover { background: #cbd5e1; }
+  .chevron { transition: transform 0.2s ease; }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+  @media print {
+    .footer-actions, .meta-row select:last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>🧹 Cleaning Inventory Checklist</h1>
+    <p>Check each item as you verify stock or restock it. Set a Par level (target quantity to keep on hand) for each item — everything saves automatically on this device.</p>
+    <div class="meta-row">
+      <input type="text" id="cleanerName" placeholder="Cleaner name">
+      <input type="text" id="propertyName" placeholder="Property / location">
+      <input type="date" id="checkDate">
+    </div>
+  </header>
+
+  <div class="progress-wrap">
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <span id="progressText">0 / 0</span>
+  </div>
+
+  <div id="checklist"></div>
+
+  <div class="footer-actions">
+    <button class="action btn-secondary" onclick="resetChecklist()">Reset All</button>
+    <button class="action btn-primary" onclick="window.print()">Print / Save PDF</button>
+  </div>
+
+</div>
+
+<script>
+const data = {
+  "Cleaning Supplies": [
+    "All-purpose cleaner",
+    "Glass cleaner",
+    "Disinfectant spray / wipes",
+    "Bathroom cleaner",
+    "Floor cleaner",
+    "Bleach",
+    "Dish soap",
+    "Laundry detergent",
+    "Fabric softener / dryer sheets",
+    "Air freshener"
+  ],
+  "Paper & Disposables": [
+    "Paper towels",
+    "Toilet paper",
+    "Tissues",
+    "Trash bags (kitchen size)",
+    "Trash bags (small/bathroom size)",
+    "Disposable gloves"
+  ],
+  "Tools & Equipment": [
+    "Mop and bucket",
+    "Broom and dustpan",
+    "Vacuum (working, bag/filter checked)",
+    "Microfiber cloths",
+    "Sponges / scrub brushes",
+    "Rubber gloves (reusable)",
+    "Squeegee",
+    "Duster"
+  ],
+  "Linens": [
+    "Bath towels",
+    "Hand towels",
+    "Washcloths",
+    "Bed sheets (spare set)",
+    "Pillowcases",
+    "Kitchen towels / rags"
+  ],
+  "Restock / Guest Amenities": [
+    "Hand soap",
+    "Shampoo / conditioner",
+    "Body wash",
+    "Coffee / tea supplies",
+    "Light bulbs (spares)",
+    "Batteries (remote/smoke detector)"
+  ]
+};
+
+const defaultPar = {
+  "Cleaning Supplies": 2,
+  "Paper & Disposables": 3,
+  "Tools & Equipment": 1,
+  "Linens": 4,
+  "Restock / Guest Amenities": 2
+};
+
+const STORAGE_KEY = "cleaningChecklistState_v1";
+
+function loadState() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function itemId(section, idx) {
+  return section.replace(/\s+/g, "_") + "_" + idx;
+}
+
+function render() {
+  const container = document.getElementById("checklist");
+  container.innerHTML = "";
+  const state = loadState();
+
+  let totalItems = 0;
+  let checkedItems = 0;
+
+  Object.entries(data).forEach(([section, items]) => {
+    totalItems += items.length;
+    const sectionDiv = document.createElement("div");
+    sectionDiv.className = "section";
+
+    const header = document.createElement("div");
+    header.className = "section-header";
+    header.innerHTML = `<span>${section}</span><span class="count"><span class="chevron">▾</span> ${items.length} items</span>`;
+    header.onclick = () => sectionDiv.classList.toggle("collapsed");
+    sectionDiv.appendChild(header);
+
+    const body = document.createElement("div");
+    body.className = "section-body";
+
+    items.forEach((itemName, idx) => {
+      const id = itemId(section, idx);
+      const parDefault = defaultPar[section] || 1;
+      const itemState = state[id] || { checked: false, qty: "ok", note: "", par: parDefault };
+      if (itemState.par === undefined || itemState.par === null) itemState.par = parDefault;
+      if (itemState.checked) checkedItems++;
+
+      const row = document.createElement("div");
+      row.className = "item" + (itemState.checked ? " checked" : "");
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = itemState.checked;
+      cb.id = id;
+      cb.onchange = () => {
+        const s = loadState();
+        s[id] = s[id] || { checked: false, qty: "ok", note: "", par: parDefault };
+        s[id].checked = cb.checked;
+        saveState(s);
+        render();
+      };
+
+      const label = document.createElement("label");
+      label.setAttribute("for", id);
+      label.textContent = itemName;
+
+      const qtySelect = document.createElement("select");
+      qtySelect.className = "qty-select";
+      qtySelect.innerHTML = `
+        <option value="ok">✅ Stocked</option>
+        <option value="low">⚠️ Low</option>
+        <option value="out">❌ Out</option>
+      `;
+      qtySelect.value = itemState.qty;
+      qtySelect.onchange = () => {
+        const s = loadState();
+        s[id] = s[id] || { checked: false, qty: "ok", note: "", par: parDefault };
+        s[id].qty = qtySelect.value;
+        saveState(s);
+      };
+
+      const parWrap = document.createElement("div");
+      parWrap.className = "par-wrap";
+      const parLabel = document.createElement("span");
+      parLabel.className = "par-label";
+      parLabel.textContent = "Par:";
+      const parInput = document.createElement("input");
+      parInput.type = "number";
+      parInput.className = "par-input";
+      parInput.min = "0";
+      parInput.value = itemState.par;
+      parInput.title = "Target quantity to keep on hand";
+      parInput.oninput = () => {
+        const s = loadState();
+        s[id] = s[id] || { checked: false, qty: "ok", note: "", par: parDefault };
+        s[id].par = parInput.value === "" ? "" : parseInt(parInput.value, 10);
+        saveState(s);
+      };
+      parWrap.appendChild(parLabel);
+      parWrap.appendChild(parInput);
+
+      const noteToggle = document.createElement("button");
+      noteToggle.className = "note-toggle";
+      noteToggle.textContent = "📝";
+      noteToggle.title = "Add note";
+      noteToggle.onclick = () => {
+        noteInput.classList.toggle("visible");
+      };
+
+      row.appendChild(cb);
+      row.appendChild(label);
+      row.appendChild(qtySelect);
+      row.appendChild(parWrap);
+      row.appendChild(noteToggle);
+
+      const noteInput = document.createElement("input");
+      noteInput.type = "text";
+      noteInput.className = "note-input" + (itemState.note ? " visible" : "");
+      noteInput.placeholder = "Note (e.g. brand needed, quantity to buy)...";
+      noteInput.value = itemState.note || "";
+      noteInput.oninput = () => {
+        const s = loadState();
+        s[id] = s[id] || { checked: false, qty: "ok", note: "", par: parDefault };
+        s[id].note = noteInput.value;
+        saveState(s);
+      };
+
+      body.appendChild(row);
+      body.appendChild(noteInput);
+    });
+
+    sectionDiv.appendChild(body);
+    container.appendChild(sectionDiv);
+  });
+
+  document.getElementById("progressText").textContent = `${checkedItems} / ${totalItems}`;
+  const pct = totalItems ? (checkedItems / totalItems) * 100 : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+}
+
+function resetChecklist() {
+  if (confirm("Clear all checkmarks, notes, and stock statuses?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    render();
+  }
+}
+
+// Restore meta fields
+window.onload = () => {
+  const meta = JSON.parse(localStorage.getItem("checklistMeta_v1") || "{}");
+  document.getElementById("cleanerName").value = meta.name || "";
+  document.getElementById("propertyName").value = meta.property || "";
+  document.getElementById("checkDate").value = meta.date || new Date().toISOString().split("T")[0];
+
+  ["cleanerName", "propertyName", "checkDate"].forEach(id => {
+    document.getElementById(id).addEventListener("input", () => {
+      localStorage.setItem("checklistMeta_v1", JSON.stringify({
+        name: document.getElementById("cleanerName").value,
+        property: document.getElementById("propertyName").value,
+        date: document.getElementById("checkDate").value
+      }));
+    });
+  });
+
+  render();
+};
+</script>
+
+</body>
+</html>
