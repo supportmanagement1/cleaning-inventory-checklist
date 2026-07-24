@@ -6,15 +6,15 @@
 <title>Cleaning Inventory Checklist</title>
 <style>
   :root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --bg: #f4f6f9;
+    --primary: #6b8e23;
+    --primary-dark: #556b2f;
+    --bg: #f5f6ef;
     --card: #ffffff;
-    --border: #e2e8f0;
-    --text: #1e293b;
-    --muted: #64748b;
-    --done-bg: #f0fdf4;
-    --done-border: #86efac;
+    --border: #dde2cf;
+    --text: #2f3320;
+    --muted: #6f7360;
+    --done-bg: #eef3e0;
+    --done-border: #a8c66c;
   }
   * { box-sizing: border-box; }
   body {
@@ -67,7 +67,7 @@
   }
   .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, #22c55e, #16a34a);
+    background: linear-gradient(90deg, #9dbb4f, #6b8e23);
     width: 0%;
     transition: width 0.3s ease;
   }
@@ -192,8 +192,70 @@
   .chevron { transition: transform 0.2s ease; }
   .section.collapsed .chevron { transform: rotate(-90deg); }
   .section.collapsed .section-body { display: none; }
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-box {
+    background: white;
+    border-radius: 14px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 { margin: 0; font-size: 1.2rem; }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 4px 8px;
+  }
+  #reportContent {
+    padding: 16px 20px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+  }
+  #reportContent h3 { font-size: 0.95rem; margin: 14px 0 6px; color: var(--primary-dark); }
+  #reportContent ul { margin: 0 0 6px; padding-left: 20px; }
+  #reportContent li { margin-bottom: 4px; }
+  .report-meta { color: var(--muted); font-size: 0.85rem; margin-bottom: 10px; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .modal-actions button { flex: 1; }
+  .status-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+  .status-low { background: #fef3c7; color: #92400e; }
+  .status-out { background: #fee2e2; color: #991b1b; }
   @media print {
-    .footer-actions, .meta-row select:last-child { display: none; }
+    .footer-actions, .meta-row select:last-child, .modal-overlay { display: none; }
   }
 </style>
 </head>
@@ -202,10 +264,10 @@
 
   <header>
     <h1>🧹 Cleaning Inventory Checklist</h1>
-    <p>Check each item as you verify stock or restock it. Set a Par level (target quantity to keep on hand) for each item — everything saves automatically on this device.</p>
+    <p>Hi team!<br><br>Thanks for keeping our homes guest-ready.<br><br>Please select the property, walk through each item below, and check it off as you verify it; this helps us know what needs restocking.<br><br>Leave a comment on anything that needs attention, then hit Submit when you're done. 💚</p>
     <div class="meta-row">
       <input type="text" id="cleanerName" placeholder="Cleaner name">
-      <input type="text" id="propertyName" placeholder="Property / location">
+      <select id="propertyName"><option value="">-- Select Property --</option></select>
       <input type="date" id="checkDate">
     </div>
   </header>
@@ -219,9 +281,24 @@
 
   <div class="footer-actions">
     <button class="action btn-secondary" onclick="resetChecklist()">Reset All</button>
-    <button class="action btn-primary" onclick="window.print()">Print / Save PDF</button>
+    <button class="action btn-secondary" onclick="window.print()">Print / Save PDF</button>
+    <button class="action btn-primary" onclick="submitChecklist()">Submit Checklist</button>
   </div>
 
+</div>
+
+<div id="reportModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>🛒 Shopping List</h2>
+      <button class="modal-close" onclick="closeReport()">✕</button>
+    </div>
+    <div id="reportContent"></div>
+    <div class="modal-actions">
+      <button class="action btn-secondary" onclick="copyReport()">Copy to Clipboard</button>
+      <button class="action btn-primary" onclick="printReport()">Print</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -282,18 +359,47 @@ const defaultPar = {
   "Restock / Guest Amenities": 2
 };
 
-const STORAGE_KEY = "cleaningChecklistState_v1";
+const PROPERTIES = [
+  "West End Rambler",
+  "Bates Walk",
+  "Capitol Hill",
+  "Edgar's Bungalow",
+  "Inn Saltar's 1",
+  "Inn Saltar's 2",
+  "Inn Saltar's 3",
+  "Custer house",
+  "Casa Spanaway",
+  "Queen Anne",
+  "Ravensdale",
+  "Lake-Ridge Rambler",
+  "Ballard Twin Home"
+];
+
+// Paste your Formspree endpoint below, e.g. "https://formspree.io/f/abcdwxyz"
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/REPLACE_WITH_YOUR_FORM_ID";
+
+const STORAGE_PREFIX = "cleaningChecklistState_v1__";
+
+function getCurrentProperty() {
+  const el = document.getElementById("propertyName");
+  return el ? el.value : "";
+}
+
+function getStorageKey() {
+  const property = getCurrentProperty() || "unassigned";
+  return STORAGE_PREFIX + property;
+}
 
 function loadState() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    return JSON.parse(localStorage.getItem(getStorageKey())) || {};
   } catch (e) {
     return {};
   }
 }
 
 function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(getStorageKey(), JSON.stringify(state));
 }
 
 function itemId(section, idx) {
@@ -303,6 +409,14 @@ function itemId(section, idx) {
 function render() {
   const container = document.getElementById("checklist");
   container.innerHTML = "";
+
+  if (!getCurrentProperty()) {
+    container.innerHTML = '<p style="text-align:center;color:var(--muted);padding:24px 10px;">Select a property above to load its checklist.</p>';
+    document.getElementById("progressText").textContent = "0 / 0";
+    document.getElementById("progressFill").style.width = "0%";
+    return;
+  }
+
   const state = loadState();
 
   let totalItems = 0;
@@ -385,8 +499,8 @@ function render() {
 
       const noteToggle = document.createElement("button");
       noteToggle.className = "note-toggle";
-      noteToggle.textContent = "📝";
-      noteToggle.title = "Add note";
+      noteToggle.textContent = "💬";
+      noteToggle.title = "Add comment";
       noteToggle.onclick = () => {
         noteInput.classList.toggle("visible");
       };
@@ -400,7 +514,7 @@ function render() {
       const noteInput = document.createElement("input");
       noteInput.type = "text";
       noteInput.className = "note-input" + (itemState.note ? " visible" : "");
-      noteInput.placeholder = "Note (e.g. brand needed, quantity to buy)...";
+      noteInput.placeholder = "Add a comment (e.g. brand needed, quantity to buy)...";
       noteInput.value = itemState.note || "";
       noteInput.oninput = () => {
         const s = loadState();
@@ -423,27 +537,185 @@ function render() {
 }
 
 function resetChecklist() {
-  if (confirm("Clear all checkmarks, notes, and stock statuses?")) {
-    localStorage.removeItem(STORAGE_KEY);
+  if (!getCurrentProperty()) {
+    alert("Select a property first.");
+    return;
+  }
+  if (confirm(`Clear all checkmarks, notes, and stock statuses for ${getCurrentProperty()}?`)) {
+    localStorage.removeItem(getStorageKey());
     render();
   }
 }
 
+function generateShoppingList() {
+  const state = loadState();
+  const listBySection = {};
+  Object.entries(data).forEach(([section, items]) => {
+    items.forEach((itemName, idx) => {
+      const id = itemId(section, idx);
+      const itemState = state[id];
+      if (itemState && (itemState.qty === "low" || itemState.qty === "out")) {
+        if (!listBySection[section]) listBySection[section] = [];
+        const par = (itemState.par !== undefined && itemState.par !== "" && itemState.par !== null)
+          ? itemState.par
+          : (defaultPar[section] || 1);
+        listBySection[section].push({
+          name: itemName,
+          status: itemState.qty,
+          par: par,
+          note: itemState.note || ""
+        });
+      }
+    });
+  });
+  return listBySection;
+}
+
+function getReportMeta() {
+  return {
+    property: getCurrentProperty() || "Unspecified property",
+    cleaner: document.getElementById("cleanerName").value || "Unspecified cleaner",
+    date: document.getElementById("checkDate").value || new Date().toISOString().split("T")[0]
+  };
+}
+
+function buildReportHTML(listBySection, meta) {
+  let html = `<div class="report-meta">Property: <strong>${meta.property}</strong> &nbsp;|&nbsp; Cleaner: <strong>${meta.cleaner}</strong> &nbsp;|&nbsp; Date: <strong>${meta.date}</strong></div>`;
+  const sections = Object.keys(listBySection);
+  if (sections.length === 0) {
+    html += `<p>✅ Everything is fully stocked. Nothing needed for this visit.</p>`;
+    return html;
+  }
+  sections.forEach(section => {
+    html += `<h3>${section}</h3><ul>`;
+    listBySection[section].forEach(item => {
+      const tagClass = item.status === "out" ? "status-out" : "status-low";
+      const tagText = item.status === "out" ? "OUT" : "LOW";
+      html += `<li>${item.name} <span class="status-tag ${tagClass}">${tagText}</span> — restock to ${item.par}${item.note ? ` <em>(${item.note})</em>` : ""}</li>`;
+    });
+    html += `</ul>`;
+  });
+  return html;
+}
+
+function buildReportText(listBySection, meta) {
+  let text = `Shopping List\nProperty: ${meta.property}\nCleaner: ${meta.cleaner}\nDate: ${meta.date}\n\n`;
+  const sections = Object.keys(listBySection);
+  if (sections.length === 0) {
+    text += "Everything is fully stocked. Nothing needed for this visit.\n";
+    return text;
+  }
+  sections.forEach(section => {
+    text += `${section}:\n`;
+    listBySection[section].forEach(item => {
+      const tagText = item.status === "out" ? "OUT" : "LOW";
+      text += `  - ${item.name} [${tagText}] — restock to ${item.par}${item.note ? ` (${item.note})` : ""}\n`;
+    });
+    text += "\n";
+  });
+  return text;
+}
+
+function submitChecklist() {
+  if (!getCurrentProperty()) {
+    alert("Please select a property first.");
+    return;
+  }
+  const listBySection = generateShoppingList();
+  const meta = getReportMeta();
+  document.getElementById("reportContent").innerHTML =
+    buildReportHTML(listBySection, meta) +
+    '<p id="sendStatus" style="margin-top:10px;font-size:0.85rem;color:var(--muted);">Sending to admin...</p>';
+  document.getElementById("reportModal").classList.add("visible");
+  window.__lastReportText = buildReportText(listBySection, meta);
+
+  const payload = {
+    property: meta.property,
+    cleaner: meta.cleaner,
+    date: meta.date,
+    shopping_list: window.__lastReportText,
+    _subject: `Shopping List - ${meta.property} - ${meta.date}`
+  };
+
+  fetch(FORMSPREE_ENDPOINT, {
+    method: "POST",
+    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).then(res => {
+    const statusEl = document.getElementById("sendStatus");
+    if (statusEl) {
+      statusEl.textContent = res.ok
+        ? "✅ Sent to admin."
+        : "⚠️ Could not send automatically — use Copy or Print below to send it yourself.";
+    }
+  }).catch(() => {
+    const statusEl = document.getElementById("sendStatus");
+    if (statusEl) statusEl.textContent = "⚠️ Could not send automatically — use Copy or Print below to send it yourself.";
+  });
+}
+
+function closeReport() {
+  document.getElementById("reportModal").classList.remove("visible");
+}
+
+function copyReport() {
+  const text = window.__lastReportText || "";
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => alert("Shopping list copied to clipboard!"));
+  } else {
+    alert(text);
+  }
+}
+
+function printReport() {
+  const w = window.open("", "_blank");
+  w.document.write(`<html><head><title>Shopping List</title><style>
+    body { font-family: -apple-system, Arial, sans-serif; padding: 24px; color: #1e293b; }
+    h1 { font-size: 1.3rem; }
+    h3 { font-size: 1rem; margin-top: 16px; }
+    ul { padding-left: 20px; }
+    .report-meta { color: #64748b; font-size: 0.9rem; margin-bottom: 12px; }
+    .status-tag { font-size: 0.75rem; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+    .status-low { background: #fef3c7; color: #92400e; }
+    .status-out { background: #fee2e2; color: #991b1b; }
+  </style></head><body><h1>🛒 Shopping List</h1>${document.getElementById("reportContent").innerHTML}</body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
+}
+
+function populatePropertyOptions() {
+  const select = document.getElementById("propertyName");
+  PROPERTIES.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+}
+
 // Restore meta fields
 window.onload = () => {
+  populatePropertyOptions();
+
   const meta = JSON.parse(localStorage.getItem("checklistMeta_v1") || "{}");
   document.getElementById("cleanerName").value = meta.name || "";
   document.getElementById("propertyName").value = meta.property || "";
   document.getElementById("checkDate").value = meta.date || new Date().toISOString().split("T")[0];
 
-  ["cleanerName", "propertyName", "checkDate"].forEach(id => {
-    document.getElementById(id).addEventListener("input", () => {
-      localStorage.setItem("checklistMeta_v1", JSON.stringify({
-        name: document.getElementById("cleanerName").value,
-        property: document.getElementById("propertyName").value,
-        date: document.getElementById("checkDate").value
-      }));
-    });
+  function saveMeta() {
+    localStorage.setItem("checklistMeta_v1", JSON.stringify({
+      name: document.getElementById("cleanerName").value,
+      property: document.getElementById("propertyName").value,
+      date: document.getElementById("checkDate").value
+    }));
+  }
+
+  document.getElementById("cleanerName").addEventListener("input", saveMeta);
+  document.getElementById("checkDate").addEventListener("input", saveMeta);
+  document.getElementById("propertyName").addEventListener("change", () => {
+    saveMeta();
+    render();
   });
 
   render();
