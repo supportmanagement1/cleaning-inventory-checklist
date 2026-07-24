@@ -519,3 +519,241 @@ function render() {
         s[id].par = parInput.value === "" ? "" : parseInt(parInput.value, 10);
         saveState(s);
       };
+      parWrap.appendChild(parLabel);
+      parWrap.appendChild(parInput);
+
+      const noteToggle = document.createElement("button");
+      noteToggle.className = "note-toggle";
+      noteToggle.textContent = "💬";
+      noteToggle.title = "Add comment";
+      noteToggle.onclick = () => {
+        noteInput.classList.toggle("visible");
+      };
+
+      row.appendChild(cb);
+      row.appendChild(label);
+      row.appendChild(qtySelect);
+      row.appendChild(parWrap);
+      row.appendChild(noteToggle);
+
+      const noteInput = document.createElement("input");
+      noteInput.type = "text";
+      noteInput.className = "note-input" + (itemState.note ? " visible" : "");
+      noteInput.placeholder = "Add a comment (e.g. brand needed, quantity to buy)...";
+      noteInput.value = itemState.note || "";
+      noteInput.oninput = () => {
+        const s = loadState();
+        s[id] = s[id] || { checked: false, qty: "ok", note: "", par: parDefault };
+        s[id].note = noteInput.value;
+        saveState(s);
+      };
+
+      body.appendChild(row);
+      body.appendChild(noteInput);
+    });
+
+    sectionDiv.appendChild(body);
+    container.appendChild(sectionDiv);
+  });
+
+  document.getElementById("progressText").textContent = `${checkedItems} / ${totalItems}`;
+  const pct = totalItems ? (checkedItems / totalItems) * 100 : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+}
+
+function resetChecklist() {
+  if (!getCurrentProperty()) {
+    alert("Select a property first.");
+    return;
+  }
+  if (confirm(`Clear all checkmarks, notes, and stock statuses for ${getCurrentProperty()}?`)) {
+    localStorage.removeItem(getStorageKey());
+    render();
+  }
+}
+
+function generateShoppingList() {
+  const state = loadState();
+  const listBySection = {};
+  Object.entries(data).forEach(([section, items]) => {
+    items.forEach((itemName, idx) => {
+      const id = itemId(section, idx);
+      const itemState = state[id];
+      if (itemState && (itemState.qty === "low" || itemState.qty === "out")) {
+        if (!listBySection[section]) listBySection[section] = [];
+        const par = (itemState.par !== undefined && itemState.par !== "" && itemState.par !== null)
+          ? itemState.par
+          : (defaultPar[section] || 1);
+        listBySection[section].push({
+          name: itemName,
+          status: itemState.qty,
+          par: par,
+          note: itemState.note || ""
+        });
+      }
+    });
+  });
+  return listBySection;
+}
+
+function getReportMeta() {
+  return {
+    property: getCurrentProperty() || "Unspecified property",
+    cleaner: document.getElementById("cleanerName").value || "Unspecified cleaner",
+    date: document.getElementById("checkDate").value || new Date().toISOString().split("T")[0]
+  };
+}
+
+function buildReportHTML(listBySection, meta) {
+  let html = `<div class="report-meta">Property: <strong>${meta.property}</strong> &nbsp;|&nbsp; Cleaner: <strong>${meta.cleaner}</strong> &nbsp;|&nbsp; Date: <strong>${meta.date}</strong></div>`;
+  const sections = Object.keys(listBySection);
+  if (sections.length === 0) {
+    html += `<p>✅ Everything is fully stocked. Nothing needed for this visit.</p>`;
+    return html;
+  }
+  sections.forEach(section => {
+    html += `<h3>${section}</h3><ul>`;
+    listBySection[section].forEach(item => {
+      const tagClass = item.status === "out" ? "status-out" : "status-low";
+      const tagText = item.status === "out" ? "OUT" : "LOW";
+      html += `<li>${item.name} <span class="status-tag ${tagClass}">${tagText}</span> — restock to ${item.par}${item.note ? ` <em>(${item.note})</em>` : ""}</li>`;
+    });
+    html += `</ul>`;
+  });
+  return html;
+}
+
+function buildReportText(listBySection, meta) {
+  let text = `Shopping List\nProperty: ${meta.property}\nCleaner: ${meta.cleaner}\nDate: ${meta.date}\n\n`;
+  const sections = Object.keys(listBySection);
+  if (sections.length === 0) {
+    text += "Everything is fully stocked. Nothing needed for this visit.\n";
+    return text;
+  }
+  sections.forEach(section => {
+    text += `${section}:\n`;
+    listBySection[section].forEach(item => {
+      const tagText = item.status === "out" ? "OUT" : "LOW";
+      text += `  - ${item.name} [${tagText}] — restock to ${item.par}${item.note ? ` (${item.note})` : ""}\n`;
+    });
+    text += "\n";
+  });
+  return text;
+}
+
+function submitChecklist() {
+  if (!getCurrentProperty()) {
+    alert("Please select a property first.");
+    return;
+  }
+  const listBySection = generateShoppingList();
+  const meta = getReportMeta();
+  document.getElementById("reportContent").innerHTML = buildReportHTML(listBySection, meta);
+  window.__lastReportText = buildReportText(listBySection, meta);
+
+  // Show the friendly thank-you confirmation right away
+  const statusEl = document.getElementById("confirmStatus");
+  if (statusEl) statusEl.textContent = "Sending your update to the admin team...";
+  document.getElementById("confirmModal").classList.add("visible");
+
+  const payload = {
+    property: meta.property,
+    cleaner: meta.cleaner,
+    date: meta.date,
+    shopping_list: window.__lastReportText,
+    _subject: `Shopping List - ${meta.property} - ${meta.date}`
+  };
+
+  fetch(FORMSPREE_ENDPOINT, {
+    method: "POST",
+    headers: { "Accept": "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  }).then(res => {
+    if (statusEl) {
+      statusEl.textContent = res.ok
+        ? "Your update has been sent to the admin team."
+        : "Couldn't send automatically — tap \"View Shopping List\" below to copy or print it instead.";
+    }
+  }).catch(() => {
+    if (statusEl) statusEl.textContent = "Couldn't send automatically — tap \"View Shopping List\" below to copy or print it instead.";
+  });
+}
+
+function viewShoppingList() {
+  document.getElementById("reportModal").classList.add("visible");
+}
+
+function closeReport() {
+  document.getElementById("reportModal").classList.remove("visible");
+}
+
+function closeConfirm() {
+  document.getElementById("confirmModal").classList.remove("visible");
+}
+
+function copyReport() {
+  const text = window.__lastReportText || "";
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => alert("Shopping list copied to clipboard!"));
+  } else {
+    alert(text);
+  }
+}
+
+function printReport() {
+  const w = window.open("", "_blank");
+  w.document.write(`<html><head><title>Shopping List</title><style>
+    body { font-family: -apple-system, Arial, sans-serif; padding: 24px; color: #1e293b; }
+    h1 { font-size: 1.3rem; }
+    h3 { font-size: 1rem; margin-top: 16px; }
+    ul { padding-left: 20px; }
+    .report-meta { color: #64748b; font-size: 0.9rem; margin-bottom: 12px; }
+    .status-tag { font-size: 0.75rem; font-weight: 600; padding: 1px 6px; border-radius: 4px; margin-left: 6px; }
+    .status-low { background: #fef3c7; color: #92400e; }
+    .status-out { background: #fee2e2; color: #991b1b; }
+  </style></head><body><h1>🛒 Shopping List</h1>${document.getElementById("reportContent").innerHTML}</body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
+}
+
+function populatePropertyOptions() {
+  const select = document.getElementById("propertyName");
+  PROPERTIES.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+}
+
+// Restore meta fields
+window.onload = () => {
+  populatePropertyOptions();
+
+  const meta = JSON.parse(localStorage.getItem("checklistMeta_v1") || "{}");
+  document.getElementById("cleanerName").value = meta.name || "";
+  document.getElementById("propertyName").value = meta.property || "";
+  document.getElementById("checkDate").value = meta.date || new Date().toISOString().split("T")[0];
+
+  function saveMeta() {
+    localStorage.setItem("checklistMeta_v1", JSON.stringify({
+      name: document.getElementById("cleanerName").value,
+      property: document.getElementById("propertyName").value,
+      date: document.getElementById("checkDate").value
+    }));
+  }
+
+  document.getElementById("cleanerName").addEventListener("input", saveMeta);
+  document.getElementById("checkDate").addEventListener("input", saveMeta);
+  document.getElementById("propertyName").addEventListener("change", () => {
+    saveMeta();
+    render();
+  });
+
+  render();
+};
+</script>
+
+</body>
+</html>
