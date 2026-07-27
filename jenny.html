@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inventory Checklist — Jenny</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <script>
+    window.CLEANER_ID = "jenny";
+    window.CLEANER_NAME = "Jenny";
+    window.CLEANER_PROPERTIES = [
+      "Casa Spanaway"
+    ];
+  </script>
+
+  <div class="topbar">
+    <h1>Inventory Checklist</h1>
+    <p class="subtitle">Assigned to: <span id="cleaner-name"></span></p>
+  </div>
+
+  <div class="container">
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-label-text">0 / 0 checked</span>
+        <span id="last-saved"></span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="copy-btn">Copy Restock List</button>
+      <button class="btn btn-secondary" id="print-btn">Print</button>
+      <button class="btn btn-secondary" id="reset-btn">Reset</button>
+    </div>
+
+    <div id="checklist-root"></div>
+  </div>
+
+  <footer class="note">Data is saved only on this device/browser.</footer>
+
+  <div class="copy-modal-overlay" id="copy-modal-overlay">
+    <div class="copy-modal">
+      <h3>Restock List</h3>
+      <p>Copied to clipboard. Paste this into a text or email to your manager.</p>
+      <textarea id="copy-textarea" readonly></textarea>
+      <div class="actions">
+        <button class="btn btn-primary" id="close-modal-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/items.js"></script>
+  <script src="assets/app.js"></script>
+  <script>initChecklist();</script>
+</body>
+</html>
