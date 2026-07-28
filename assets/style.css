@@ -146,6 +146,14 @@ body {
 }
 .btn-secondary:hover { background: var(--avocado-light); }
 
+.submit-status {
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  margin: -6px 0 14px;
+}
+.submit-status.success { color: var(--status-ok); font-weight: 600; }
+.submit-status.error { color: var(--status-out); font-weight: 600; }
+
 /* Listing picker (shown when a cleaner covers more than one property) */
 .picker-intro {
   margin: 0 0 4px;
@@ -283,6 +291,26 @@ body {
 }
 
 .item-row:last-child { border-bottom: none; }
+
+.comment-input {
+  flex: 1 1 100%;
+  order: 5;
+  border: 1.5px solid var(--avocado-light);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-dark);
+  background: var(--cream);
+}
+.comment-input:focus {
+  outline: none;
+  border-color: var(--avocado);
+}
+.comment-input::placeholder {
+  color: var(--avocado-dark);
+  opacity: 0.55;
+}
 
 .item-check {
   width: 20px;
