@@ -13,6 +13,9 @@
  * straight to their checklist (no picker needed).
  */
 
+// Where "Submit Restock List" sends the report. Set up at formspree.io.
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mzdnywvz";
+
 function slugify(text) {
   return String(text)
     .toLowerCase()
@@ -117,7 +120,7 @@ function initChecklist() {
 
       cat.items.forEach((item) => {
         const key = itemKey(cat.category, item.name);
-        const saved = state[key] || { qty: 0, checked: false };
+        const saved = state[key] || { qty: 0, checked: false, comment: "" };
         if (saved.checked) counts.checked++;
 
         const row = document.createElement("div");
@@ -158,6 +161,12 @@ function initChecklist() {
         const statusTag = document.createElement("span");
         statusTag.className = "status-tag";
 
+        const commentInput = document.createElement("input");
+        commentInput.type = "text";
+        commentInput.className = "comment-input";
+        commentInput.placeholder = "Add a note (optional)";
+        commentInput.value = saved.comment || "";
+
         function refreshStatus() {
           const qty = parseInt(qtyInput.value, 10) || 0;
           const s = statusFor(qty, item.par);
@@ -167,7 +176,7 @@ function initChecklist() {
 
         function persist() {
           const qty = parseInt(qtyInput.value, 10) || 0;
-          state[key] = { qty: qty, checked: check.checked };
+          state[key] = { qty: qty, checked: check.checked, comment: commentInput.value };
           savePropertyState(cleanerId, slug, state);
           onChange(counts.checked, counts.total);
         }
@@ -194,6 +203,10 @@ function initChecklist() {
           persist();
         });
 
+        commentInput.addEventListener("input", () => {
+          persist();
+        });
+
         refreshStatus();
 
         qtyControl.appendChild(minusBtn);
@@ -205,6 +218,7 @@ function initChecklist() {
         row.appendChild(parBadge);
         row.appendChild(qtyControl);
         row.appendChild(statusTag);
+        row.appendChild(commentInput);
 
         body.appendChild(row);
       });
@@ -325,7 +339,7 @@ function initChecklist() {
     }
   };
 
-  document.getElementById("copy-btn").onclick = () => {
+  function buildRestockReport() {
     const hashProperty = properties.length > 1 ? slugInHash() : properties[0];
     const propertiesToReport = hashProperty ? [hashProperty] : properties;
 
@@ -338,6 +352,8 @@ function initChecklist() {
       const state = loadPropertyState(cleanerId, slug);
       const propLines = [];
 
+      const noteLines = [];
+
       INVENTORY_DATA.forEach((cat) => {
         const shortages = cat.items.filter((item) => {
           const s = state[itemKey(cat.category, item.name)] || { qty: 0 };
@@ -348,9 +364,18 @@ function initChecklist() {
           shortages.forEach((item) => {
             const s = state[itemKey(cat.category, item.name)] || { qty: 0 };
             const need = item.par - (s.qty || 0);
-            propLines.push("  - " + item.name + ": have " + (s.qty || 0) + ", par " + item.par + " (need " + need + " " + item.unit + ")");
+            const noteSuffix = s.comment && s.comment.trim() ? " (" + s.comment.trim() + ")" : "";
+            propLines.push("  - " + item.name + ": " + need + " " + item.unit + noteSuffix);
           });
         }
+
+        cat.items.forEach((item) => {
+          const s = state[itemKey(cat.category, item.name)] || {};
+          const isShort = (s.qty || 0) < item.par;
+          if (!isShort && s.comment && s.comment.trim()) {
+            noteLines.push("  - " + item.name + ": " + s.comment.trim());
+          }
+        });
       });
 
       if (propLines.length) {
@@ -358,6 +383,12 @@ function initChecklist() {
         lines.push("");
         lines.push(propertyName + ":");
         lines.push(...propLines);
+      }
+
+      if (noteLines.length) {
+        lines.push("");
+        lines.push(propertyName + " — other notes:");
+        lines.push(...noteLines);
       }
     });
 
@@ -368,13 +399,29 @@ function initChecklist() {
         : "Everything is at or above par across all listings. Nothing needed.");
     }
 
-    const text = lines.join("\n");
-    const textarea = document.getElementById("copy-textarea");
-    textarea.value = text;
+    return {
+      text: lines.join("\n"),
+      anyShortages: anyShortages,
+      hashProperty: hashProperty,
+      propertiesToReport: propertiesToReport
+    };
+  }
+
+  function showListModal(title, subtitle, text) {
+    const titleEl = document.getElementById("modal-title");
+    const subtitleEl = document.getElementById("modal-subtitle");
+    if (titleEl) titleEl.textContent = title;
+    if (subtitleEl) subtitleEl.textContent = subtitle;
+    document.getElementById("copy-textarea").value = text;
     document.getElementById("copy-modal-overlay").classList.add("open");
+  }
+
+  document.getElementById("copy-btn").onclick = () => {
+    const report = buildRestockReport();
+    showListModal("Shopping List", "Copied to clipboard. Paste this into a text or email to your manager.", report.text);
 
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).catch(() => {});
+      navigator.clipboard.writeText(report.text).catch(() => {});
     }
   };
 
@@ -385,4 +432,49 @@ function initChecklist() {
   document.getElementById("print-btn").onclick = () => {
     window.print();
   };
+
+  const submitBtn = document.getElementById("submit-btn");
+  const submitStatus = document.getElementById("submit-status");
+
+  function setSubmitStatus(text, cls) {
+    if (!submitStatus) return;
+    submitStatus.textContent = text;
+    submitStatus.className = "submit-status" + (cls ? " " + cls : "");
+  }
+
+  if (submitBtn) {
+    submitBtn.onclick = () => {
+      const report = buildRestockReport();
+
+      submitBtn.disabled = true;
+      setSubmitStatus("Submitting…", "");
+
+      fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          cleaner: cleanerName,
+          properties: report.propertiesToReport.join(", "),
+          submitted_at: new Date().toLocaleString(),
+          restock_list: report.text
+        })
+      })
+        .then((res) => {
+          submitBtn.disabled = false;
+          if (res.ok) {
+            setSubmitStatus("Submitted — thank you!", "success");
+            showListModal("Submitted!", "This shopping list was sent:", report.text);
+          } else {
+            setSubmitStatus("Couldn't submit. Try again, or use Copy Restock List instead.", "error");
+          }
+        })
+        .catch(() => {
+          submitBtn.disabled = false;
+          setSubmitStatus("Couldn't submit — check your connection and try again.", "error");
+        });
+    };
+  }
 }
