@@ -35,9 +35,11 @@
 
     <div class="actions">
       <button class="btn btn-primary" id="copy-btn">Copy Restock List</button>
+      <button class="btn btn-primary" id="submit-btn">Submit Restock List</button>
       <button class="btn btn-secondary" id="print-btn">Print</button>
       <button class="btn btn-secondary" id="reset-btn">Reset</button>
     </div>
+    <div id="submit-status" class="submit-status"></div>
 
     <div id="checklist-root"></div>
   </div>
@@ -46,8 +48,8 @@
 
   <div class="copy-modal-overlay" id="copy-modal-overlay">
     <div class="copy-modal">
-      <h3>Restock List</h3>
-      <p>Copied to clipboard. Paste this into a text or email to your manager.</p>
+      <h3 id="modal-title">Restock List</h3>
+      <p id="modal-subtitle">Copied to clipboard. Paste this into a text or email to your manager.</p>
       <textarea id="copy-textarea" readonly></textarea>
       <div class="actions">
         <button class="btn btn-primary" id="close-modal-btn">Close</button>
