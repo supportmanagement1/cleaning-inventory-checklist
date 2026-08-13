@@ -64,20 +64,11 @@
 
 </div>
 
-<footer class="note">
-  Los datos se guardan solamente en este dispositivo/navegador.
-</footer>
-
-
-<!-- Restock List Modal -->
-
 <div class="copy-modal-overlay" id="copy-modal-overlay">
 
   <div class="copy-modal">
 
-    <h3 id="modal-title">
-      Lista de Reposición
-    </h3>
+    <h3 id="modal-title">Lista de Reposición</h3>
 
     <p id="modal-subtitle">
       Copiado. Puedes pegar esta lista en un mensaje o correo electrónico para tu gerente.
@@ -97,28 +88,22 @@
 
 </div>
 
-
 <script src="assets/items.js"></script>
-
 <script src="assets/app.js"></script>
-
 
 <script>
 
-/* =========================================================
-   SPANISH TRANSLATIONS — LEILA & PEDRO ONLY
-   ========================================================= */
+/*
+ * Spanish translations for Leila & Pedro.
+ * This runs AFTER the existing checklist has been initialized.
+ */
 
 const SPANISH_TRANSLATIONS = {
-
-  /* Categories */
 
   "Kitchen Essentials": "Artículos esenciales de cocina",
   "Bathroom": "Baño",
   "Laundry": "Lavandería",
   "Cleaning Supplies": "Productos de limpieza",
-
-  /* Kitchen */
 
   "Coffee": "Café",
   "Salt": "Sal",
@@ -133,8 +118,6 @@ const SPANISH_TRANSLATIONS = {
   "Paper Towels": "Toallas de papel",
   "Trash Bags": "Bolsas de basura",
 
-  /* Bathroom */
-
   "Toilet Paper": "Papel higiénico",
   "Facial Tissue": "Pañuelos desechables",
   "Hand Soap": "Jabón de manos",
@@ -143,104 +126,62 @@ const SPANISH_TRANSLATIONS = {
   "Body Wash": "Gel de baño",
   "Mini Trash Bags": "Bolsas pequeñas de basura",
 
-  /* Laundry */
-
   "Detergent": "Detergente",
   "Dryer Sheets": "Toallitas para secadora",
 
-  /* Cleaning */
-
   "Multi-surface Cleaner": "Limpiador multisuperficie",
   "Bathroom Cleaner": "Limpiador de baño",
-  "Disinfectant Spray": "Spray desinfectante",
-
-  /* Units */
-
-  "bags": "bolsas",
-  "containers": "recipientes",
-  "bottles": "botellas",
-  "rolls": "rollos",
-  "boxes": "cajas",
-  "packs": "paquetes",
-  "pcs": "unidades"
-
+  "Disinfectant Spray": "Spray desinfectante"
 };
 
 
-/* =========================================================
-   TRANSLATE TEXT
-   ========================================================= */
+/*
+ * Translate text that already exists on the page.
+ */
 
-function translateText(text) {
-
-  if (!text) return text;
-
-  let translated = text;
-
-  Object.keys(SPANISH_TRANSLATIONS).forEach(function(english) {
-
-    const spanish = SPANISH_TRANSLATIONS[english];
-
-    translated = translated
-      .split(english)
-      .join(spanish);
-
-  });
-
-  return translated;
-
-}
-
-
-/* =========================================================
-   TRANSLATE PAGE
-   ========================================================= */
-
-function translateLeilaPedroPage() {
-
-  /* Translate regular text */
+function translateSpanishPage() {
 
   const walker = document.createTreeWalker(
     document.body,
     NodeFilter.SHOW_TEXT
   );
 
-  const nodes = [];
+  const textNodes = [];
 
   while (walker.nextNode()) {
-    nodes.push(walker.currentNode);
+    textNodes.push(walker.currentNode);
   }
 
-  nodes.forEach(function(node) {
-
-    const parent = node.parentElement;
-
-    /*
-     * Don't modify script/style elements.
-     */
+  textNodes.forEach(function(node) {
 
     if (
-      parent &&
+      node.parentElement &&
       (
-        parent.tagName === "SCRIPT" ||
-        parent.tagName === "STYLE"
+        node.parentElement.tagName === "SCRIPT" ||
+        node.parentElement.tagName === "STYLE"
       )
     ) {
       return;
     }
 
-    const original = node.nodeValue;
+    let text = node.nodeValue;
 
-    const translated = translateText(original);
+    Object.keys(SPANISH_TRANSLATIONS).forEach(function(english) {
 
-    if (translated !== original) {
-      node.nodeValue = translated;
-    }
+      text = text.split(english).join(
+        SPANISH_TRANSLATIONS[english]
+      );
+
+    });
+
+    node.nodeValue = text;
 
   });
 
 
-  /* Translate input placeholders */
+  /*
+   * Notes
+   */
 
   document.querySelectorAll("input").forEach(function(input) {
 
@@ -251,109 +192,70 @@ function translateLeilaPedroPage() {
   });
 
 
-  /* Translate textarea placeholders */
+  /*
+   * Par / minimum quantity
+   */
 
-  document.querySelectorAll("textarea").forEach(function(textarea) {
+  document.querySelectorAll(".par-badge").forEach(function(element) {
 
-    if (textarea.placeholder === "Add a note (optional)") {
-      textarea.placeholder = "Agregar una nota (opcional)";
-    }
-
-  });
-
-
-  /* Translate Par labels */
-
-  document.querySelectorAll(".par-badge").forEach(function(el) {
-
-    if (el.textContent.includes("Par:")) {
-      el.textContent = el.textContent.replace(
-        "Par:",
-        "Mínimo:"
-      );
-    }
+    element.textContent =
+      element.textContent.replace("Par:", "Mínimo:");
 
   });
 
 
-  /* Translate status labels */
+  /*
+   * Inventory status
+   */
 
-  document.querySelectorAll(".status-out").forEach(function(el) {
-    el.textContent = "AGOTADO";
+  document.querySelectorAll(".status-out").forEach(function(element) {
+    element.textContent = "AGOTADO";
   });
 
-  document.querySelectorAll(".status-low").forEach(function(el) {
-    el.textContent = "BAJO";
+  document.querySelectorAll(".status-low").forEach(function(element) {
+    element.textContent = "BAJO";
   });
 
-  document.querySelectorAll(".status-ok").forEach(function(el) {
-    el.textContent = "OK";
+  document.querySelectorAll(".status-ok").forEach(function(element) {
+    element.textContent = "OK";
   });
-
-
-  /* Translate progress */
-
-  const progressLabel =
-    document.getElementById("progress-label-text");
-
-  if (progressLabel) {
-
-    progressLabel.textContent =
-      progressLabel.textContent
-        .replace(" checked", " marcados")
-        .replace(" Checked", " Marcados");
-
-  }
 
 }
 
 
-/* =========================================================
-   AUTOMATIC TRANSLATION FOR DYNAMIC CONTENT
-   ========================================================= */
+/*
+ * Wait until the existing app has created the inventory,
+ * then translate it.
+ */
+
+setTimeout(function() {
+  translateSpanishPage();
+}, 300);
+
+setTimeout(function() {
+  translateSpanishPage();
+}, 1000);
+
+setTimeout(function() {
+  translateSpanishPage();
+}, 2000);
+
+
+/*
+ * Translate inventory items whenever the existing app
+ * changes the page.
+ */
 
 const spanishObserver = new MutationObserver(function() {
 
-  translateLeilaPedroPage();
+  translateSpanishPage();
 
 });
 
-spanishObserver.observe(document.body, {
-
+spanishObserver.observe(document.getElementById("checklist-root"), {
   childList: true,
   subtree: true
-
 });
-
-
-/* =========================================================
-   INITIALIZE CHECKLIST
-   ========================================================= */
-
-initChecklist();
-
-
-/* =========================================================
-   INITIAL TRANSLATION
-   ========================================================= */
-
-setTimeout(function() {
-
-  translateLeilaPedroPage();
-
-}, 100);
-
-setTimeout(function() {
-
-  translateLeilaPedroPage();
-
-}, 500);
-
-setTimeout(function() {
-
-  translateLeilaPedroPage();
-
-}, 1000);
 
 </script>
 
