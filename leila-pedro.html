@@ -17,14 +17,14 @@
   </script>
 
   <div class="topbar">
-    <h1>Inventory Checklist</h1>
-    <p class="subtitle">Assigned to: <span id="cleaner-name"></span></p>
+    <h1>Lista de Inventario</h1>
+    <p class="subtitle">Asignado a: <span id="cleaner-name"></span></p>
   </div>
 
   <div class="container">
     <div class="progress-wrap">
       <div class="progress-label">
-        <span id="progress-label-text">0 / 0 checked</span>
+        <span id="progress-label-text">0 / 0 marcados</span>
         <span id="last-saved"></span>
       </div>
       <div class="progress-bar-bg">
@@ -33,10 +33,10 @@
     </div>
 
     <div class="actions">
-      <button class="btn btn-primary" id="copy-btn">Copy Restock List</button>
-      <button class="btn btn-primary" id="submit-btn">Submit Restock List</button>
-      <button class="btn btn-secondary" id="print-btn">Print</button>
-      <button class="btn btn-secondary" id="reset-btn">Reset</button>
+      <button class="btn btn-primary" id="copy-btn">Copiar Lista de Reposición</button>
+      <button class="btn btn-primary" id="submit-btn">Enviar Lista de Reposición</button>
+      <button class="btn btn-secondary" id="print-btn">Imprimir</button>
+      <button class="btn btn-secondary" id="reset-btn">Reiniciar</button>
     </div>
     <div id="submit-status" class="submit-status"></div>
 
@@ -47,11 +47,11 @@
 
   <div class="copy-modal-overlay" id="copy-modal-overlay">
     <div class="copy-modal">
-      <h3 id="modal-title">Restock List</h3>
-      <p id="modal-subtitle">Copied to clipboard. Paste this into a text or email to your manager.</p>
+      <h3 id="modal-title">Lista de Reposición</h3>
+      <p id="modal-subtitle">Copiado. Puedes pegar esta lista en un mensaje o correo electrónico para tu gerente.</p>
       <textarea id="copy-textarea" readonly></textarea>
       <div class="actions">
-        <button class="btn btn-primary" id="close-modal-btn">Close</button>
+        <button class="btn btn-primary" id="close-modal-btn">Cerrar</button>
       </div>
     </div>
   </div>
