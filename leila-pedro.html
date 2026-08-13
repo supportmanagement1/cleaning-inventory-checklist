@@ -4,7 +4,438 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Lista de Inventario — Leila &amp; Pedro</title>
-<link rel="stylesheet" href="assets/style.css" />
+<style>
+:root {
+  --avocado-dark: #4b6b3a;
+  --avocado: #7ba05b;
+  --avocado-mid: #97b86e;
+  --avocado-light: #c3d9a4;
+  --avocado-pale: #f0f5e6;
+  --pit-brown: #7a5230;
+  --cream: #fbfaf3;
+  --text-dark: #2f3a25;
+  --status-ok: #6b9b3f;
+  --status-low: #d99a2b;
+  --status-out: #c9573f;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(47, 58, 37, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--avocado-pale);
+  color: var(--text-dark);
+}
+
+.topbar {
+  background: var(--avocado-dark);
+  color: var(--cream);
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+}
+
+.topbar h1 {
+  margin: 0 0 4px 0;
+  font-size: 1.4rem;
+}
+
+.topbar .subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 16px 80px;
+}
+
+/* Landing page */
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.cleaner-link {
+  display: block;
+  background: var(--avocado);
+  color: var(--cream);
+  text-decoration: none;
+  text-align: center;
+  padding: 22px 12px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 1.05rem;
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.cleaner-link:hover {
+  background: var(--avocado-dark);
+  transform: translateY(-2px);
+}
+
+.instructions {
+  background: var(--cream);
+  border-left: 4px solid var(--avocado);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-top: 24px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+/* Progress bar */
+.progress-wrap {
+  background: var(--cream);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin: 18px 0;
+  box-shadow: var(--shadow);
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  color: var(--text-dark);
+}
+
+.progress-bar-bg {
+  background: var(--avocado-light);
+  border-radius: 20px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  background: var(--avocado-dark);
+  height: 100%;
+  width: 0%;
+  transition: width 0.2s ease;
+}
+
+/* Action buttons */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.btn-primary {
+  background: var(--avocado-dark);
+  color: var(--cream);
+}
+.btn-primary:hover { background: var(--pit-brown); }
+
+.btn-secondary {
+  background: var(--cream);
+  color: var(--avocado-dark);
+  border: 1.5px solid var(--avocado);
+}
+.btn-secondary:hover { background: var(--avocado-light); }
+
+.submit-status {
+  font-size: 0.85rem;
+  min-height: 1.2em;
+  margin: -6px 0 14px;
+}
+.submit-status.success { color: var(--status-ok); font-weight: 600; }
+.submit-status.error { color: var(--status-out); font-weight: 600; }
+
+/* Listing picker (shown when a cleaner covers more than one property) */
+.picker-intro {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.listing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 14px 0 24px;
+}
+
+.listing-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--avocado-dark);
+  color: var(--cream);
+  text-decoration: none;
+  padding: 18px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.listing-card:hover {
+  background: var(--pit-brown);
+  transform: translateY(-2px);
+}
+
+.listing-card-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.listing-card-progress {
+  align-self: flex-start;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(251, 250, 243, 0.18);
+}
+
+.listing-card-progress.listing-card-ok { background: var(--status-ok); }
+.listing-card-progress.listing-card-partial { background: var(--status-low); }
+.listing-card-progress.listing-card-none { background: rgba(251, 250, 243, 0.18); }
+
+/* Back link (shown when viewing a single listing after the picker) */
+.back-link {
+  display: inline-block;
+  color: var(--avocado-dark);
+  font-weight: 600;
+  text-decoration: none;
+  margin-bottom: 14px;
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Property sections (one per property a cleaner covers) */
+.property-section {
+  background: var(--avocado-dark);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  padding: 6px;
+  box-shadow: var(--shadow);
+}
+
+.property-header {
+  color: var(--cream);
+  padding: 12px 12px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.property-header.property-header-static {
+  cursor: default;
+}
+
+.property-header .prop-progress {
+  font-weight: 500;
+  font-size: 0.85rem;
+  background: rgba(251, 250, 243, 0.18);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.property-body {
+  padding: 4px;
+}
+
+/* Category sections */
+.category {
+  background: var(--cream);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.category-header {
+  background: var(--avocado-mid);
+  color: var(--text-dark);
+  padding: 12px 16px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.category-header .count {
+  font-weight: 500;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.category-body {
+  padding: 6px 16px 10px;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--avocado-light);
+  flex-wrap: wrap;
+}
+
+.item-row:last-child { border-bottom: none; }
+
+.comment-input {
+  flex: 1 1 100%;
+  order: 5;
+  border: 1.5px solid var(--avocado-light);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-dark);
+  background: var(--cream);
+}
+.comment-input:focus {
+  outline: none;
+  border-color: var(--avocado);
+}
+.comment-input::placeholder {
+  color: var(--avocado-dark);
+  opacity: 0.55;
+}
+
+.item-check {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--avocado-dark);
+  flex-shrink: 0;
+}
+
+.item-name {
+  flex: 1 1 160px;
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.item-name .unit {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--avocado-dark);
+  opacity: 0.8;
+}
+
+.par-badge {
+  font-size: 0.78rem;
+  background: var(--avocado-light);
+  color: var(--text-dark);
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qty-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid var(--avocado);
+  background: var(--cream);
+  color: var(--avocado-dark);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.qty-btn:hover { background: var(--avocado-light); }
+
+.qty-input {
+  width: 46px;
+  text-align: center;
+  border: 1.5px solid var(--avocado-light);
+  border-radius: 6px;
+  padding: 5px 2px;
+  font-size: 0.95rem;
+}
+
+.status-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 20px;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.status-ok { background: var(--status-ok); }
+.status-low { background: var(--status-low); }
+.status-out { background: var(--status-out); }
+
+footer.note {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--avocado-dark);
+  margin-top: 24px;
+  opacity: 0.75;
+}
+
+.copy-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(47, 58, 37, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 50;
+}
+.copy-modal-overlay.open { display: flex; }
+
+.copy-modal {
+  background: var(--cream);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow);
+}
+
+.copy-modal h3 { margin-top: 0; color: var(--avocado-dark); }
+
+.copy-modal textarea {
+  width: 100%;
+  height: 180px;
+  border-radius: 8px;
+  border: 1.5px solid var(--avocado-light);
+  padding: 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  resize: vertical;
+}
+
+@media print {
+  .actions, .topbar .actions, .btn, .copy-modal-overlay { display: none !important; }
+}
+
+</style>
 </head>
 
 <body>
@@ -64,6 +495,8 @@
 
 </div>
 
+<footer class="note">Los datos se guardan solo en este dispositivo o navegador.</footer>
+
 <div class="copy-modal-overlay" id="copy-modal-overlay">
 
   <div class="copy-modal">
@@ -88,8 +521,543 @@
 
 </div>
 
-<script src="assets/items.js"></script>
-<script src="assets/app.js"></script>
+<script>
+/**
+ * Shared inventory data for all cleaner checklists.
+ * Edit `par` (par level) and `unit` here — changes apply to every cleaner page.
+ */
+const INVENTORY_DATA = [
+  {
+    category: "Kitchen Essentials",
+    items: [
+      { name: "Coffee", unit: "bags", par: 2 },
+      { name: "Salt", unit: "containers", par: 2 },
+      { name: "Pepper", unit: "containers", par: 2 },
+      { name: "Cooking Oil", unit: "bottles", par: 2 },
+      { name: "Aluminum Foil", unit: "rolls", par: 2 },
+      { name: "Plastic Wrap", unit: "rolls", par: 2 },
+      { name: "Zip-top Bags", unit: "boxes", par: 2 },
+      { name: "Dish Soap", unit: "bottles", par: 2 },
+      { name: "Dishwasher Pods", unit: "packs", par: 2 },
+      { name: "Kitchen Sponge", unit: "pcs", par: 3 },
+      { name: "Paper Towels", unit: "rolls", par: 4 },
+      { name: "Trash Bags", unit: "boxes", par: 3 }
+    ]
+  },
+  {
+    category: "Bathroom",
+    items: [
+      { name: "Toilet Paper", unit: "rolls", par: 6 },
+      { name: "Facial Tissue", unit: "boxes", par: 3 },
+      { name: "Hand Soap", unit: "bottles", par: 3 },
+      { name: "Shampoo", unit: "bottles", par: 2 },
+      { name: "Conditioner", unit: "bottles", par: 2 },
+      { name: "Body Wash", unit: "bottles", par: 2 },
+      { name: "Mini Trash Bags", unit: "boxes", par: 2 }
+    ]
+  },
+  {
+    category: "Laundry",
+    items: [
+      { name: "Detergent", unit: "bottles", par: 2 },
+      { name: "Dryer Sheets", unit: "boxes", par: 2 }
+    ]
+  },
+  {
+    category: "Cleaning Supplies",
+    items: [
+      { name: "Multi-surface Cleaner", unit: "bottles", par: 2 },
+      { name: "Bathroom Cleaner", unit: "bottles", par: 2 },
+      { name: "Disinfectant Spray", unit: "bottles", par: 2 }
+    ]
+  }
+];
+
+</script>
+<script>
+/**
+ * Shared checklist engine. Each cleaner-N.html / <name>.html page sets:
+ *   window.CLEANER_ID         - unique id, used as the localStorage key prefix
+ *   window.CLEANER_NAME       - display name
+ *   window.CLEANER_PROPERTIES - array of property names this cleaner covers
+ * ...then calls initChecklist(). If CLEANER_PROPERTIES is omitted, a single
+ * property named after the cleaner is used (backward compatible with the
+ * original one-list-per-cleaner pages).
+ *
+ * Cleaners with more than one property see a "pick your listing" screen
+ * first; clicking a listing opens just that property's checklist, with a
+ * back link to return to the picker. Cleaners with a single property go
+ * straight to their checklist (no picker needed).
+ */
+
+// Where "Submit Restock List" sends the report. Set up at formspree.io.
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mzdnywvz";
+
+function slugify(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function storageKey(cleanerId, propertySlug) {
+  return "inv-checklist-" + cleanerId + "--" + propertySlug;
+}
+
+function loadPropertyState(cleanerId, propertySlug) {
+  try {
+    const raw = localStorage.getItem(storageKey(cleanerId, propertySlug));
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function savePropertyState(cleanerId, propertySlug, state) {
+  state._savedAt = new Date().toISOString();
+  localStorage.setItem(storageKey(cleanerId, propertySlug), JSON.stringify(state));
+  const savedEl = document.getElementById("last-saved");
+  if (savedEl) {
+    savedEl.textContent = "Saved " + new Date().toLocaleTimeString();
+  }
+}
+
+function itemKey(category, name) {
+  return category + "::" + name;
+}
+
+function statusFor(qty, par) {
+  if (qty <= 0) return { cls: "status-out", label: "OUT" };
+  if (qty < par) return { cls: "status-low", label: "LOW" };
+  return { cls: "status-ok", label: "OK" };
+}
+
+function propertyProgress(cleanerId, propertyName) {
+  const state = loadPropertyState(cleanerId, slugify(propertyName));
+  let total = 0;
+  let checked = 0;
+  INVENTORY_DATA.forEach((cat) => {
+    total += cat.items.length;
+    cat.items.forEach((item) => {
+      const saved = state[itemKey(cat.category, item.name)];
+      if (saved && saved.checked) checked++;
+    });
+  });
+  return { total: total, checked: checked, savedAt: state._savedAt || null };
+}
+
+function initChecklist() {
+  const cleanerId = window.CLEANER_ID || "default";
+  const cleanerName = window.CLEANER_NAME || "Cleaner";
+  const properties = (window.CLEANER_PROPERTIES && window.CLEANER_PROPERTIES.length)
+    ? window.CLEANER_PROPERTIES
+    : [cleanerName];
+
+  document.getElementById("cleaner-name").textContent = cleanerName;
+
+  function slugInHash() {
+    const raw = window.location.hash.replace(/^#/, "");
+    if (!raw) return null;
+    return properties.find((p) => slugify(p) === raw) || null;
+  }
+
+  function updateProgressBar(checked, total) {
+    const fill = document.getElementById("progress-fill");
+    const label = document.getElementById("progress-label-text");
+    const pct = total === 0 ? 0 : Math.round((checked / total) * 100);
+    fill.style.width = pct + "%";
+    label.textContent = checked + " / " + total + " checked (" + pct + "%)";
+  }
+
+  function updateSavedLabel(savedAt) {
+    const el = document.getElementById("last-saved");
+    el.textContent = savedAt ? "Last saved " + new Date(savedAt).toLocaleString() : "Not saved yet";
+  }
+
+  function buildPropertyChecklist(container, propertyName, onChange) {
+    const slug = slugify(propertyName);
+    const state = loadPropertyState(cleanerId, slug);
+    const counts = { checked: 0, total: 0 };
+
+    INVENTORY_DATA.forEach((cat) => {
+      counts.total += cat.items.length;
+
+      const catEl = document.createElement("div");
+      catEl.className = "category";
+
+      const header = document.createElement("div");
+      header.className = "category-header";
+      header.innerHTML = '<span>' + cat.category + '</span><span class="count"></span>';
+      header.addEventListener("click", () => {
+        body.style.display = body.style.display === "none" ? "block" : "none";
+      });
+
+      const body = document.createElement("div");
+      body.className = "category-body";
+
+      cat.items.forEach((item) => {
+        const key = itemKey(cat.category, item.name);
+        const saved = state[key] || { qty: 0, checked: false, comment: "" };
+        if (saved.checked) counts.checked++;
+
+        const row = document.createElement("div");
+        row.className = "item-row";
+
+        const check = document.createElement("input");
+        check.type = "checkbox";
+        check.className = "item-check";
+        check.checked = !!saved.checked;
+
+        const nameEl = document.createElement("div");
+        nameEl.className = "item-name";
+        nameEl.innerHTML = item.name + ' <span class="unit">(' + item.unit + ")</span>";
+
+        const parBadge = document.createElement("span");
+        parBadge.className = "par-badge";
+        parBadge.textContent = "Par: " + item.par;
+
+        const qtyControl = document.createElement("div");
+        qtyControl.className = "qty-control";
+
+        const minusBtn = document.createElement("button");
+        minusBtn.type = "button";
+        minusBtn.className = "qty-btn";
+        minusBtn.textContent = "−";
+
+        const qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.className = "qty-input";
+        qtyInput.min = "0";
+        qtyInput.value = saved.qty;
+
+        const plusBtn = document.createElement("button");
+        plusBtn.type = "button";
+        plusBtn.className = "qty-btn";
+        plusBtn.textContent = "+";
+
+        const statusTag = document.createElement("span");
+        statusTag.className = "status-tag";
+
+        const commentInput = document.createElement("input");
+        commentInput.type = "text";
+        commentInput.className = "comment-input";
+        commentInput.placeholder = "Add a note (optional)";
+        commentInput.value = saved.comment || "";
+
+        function refreshStatus() {
+          const qty = parseInt(qtyInput.value, 10) || 0;
+          const s = statusFor(qty, item.par);
+          statusTag.className = "status-tag " + s.cls;
+          statusTag.textContent = s.label;
+        }
+
+        function persist() {
+          const qty = parseInt(qtyInput.value, 10) || 0;
+          state[key] = { qty: qty, checked: check.checked, comment: commentInput.value };
+          savePropertyState(cleanerId, slug, state);
+          onChange(counts.checked, counts.total);
+        }
+
+        minusBtn.addEventListener("click", () => {
+          qtyInput.value = Math.max(0, (parseInt(qtyInput.value, 10) || 0) - 1);
+          refreshStatus();
+          persist();
+        });
+
+        plusBtn.addEventListener("click", () => {
+          qtyInput.value = (parseInt(qtyInput.value, 10) || 0) + 1;
+          refreshStatus();
+          persist();
+        });
+
+        qtyInput.addEventListener("input", () => {
+          refreshStatus();
+          persist();
+        });
+
+        check.addEventListener("change", () => {
+          counts.checked += check.checked ? 1 : -1;
+          persist();
+        });
+
+        commentInput.addEventListener("input", () => {
+          persist();
+        });
+
+        refreshStatus();
+
+        qtyControl.appendChild(minusBtn);
+        qtyControl.appendChild(qtyInput);
+        qtyControl.appendChild(plusBtn);
+
+        row.appendChild(check);
+        row.appendChild(nameEl);
+        row.appendChild(parBadge);
+        row.appendChild(qtyControl);
+        row.appendChild(statusTag);
+        row.appendChild(commentInput);
+
+        body.appendChild(row);
+      });
+
+      catEl.appendChild(header);
+      catEl.appendChild(body);
+      container.appendChild(catEl);
+    });
+
+    onChange(counts.checked, counts.total);
+    return counts;
+  }
+
+  function renderPicker(root) {
+    const intro = document.createElement("p");
+    intro.className = "picker-intro";
+    intro.textContent = "Pick a listing to open its checklist:";
+    root.appendChild(intro);
+
+    const grid = document.createElement("div");
+    grid.className = "listing-grid";
+
+    let totalItems = 0;
+    let checkedItems = 0;
+    let latestSavedAt = null;
+
+    properties.forEach((propertyName) => {
+      const prog = propertyProgress(cleanerId, propertyName);
+      totalItems += prog.total;
+      checkedItems += prog.checked;
+      if (prog.savedAt && (!latestSavedAt || prog.savedAt > latestSavedAt)) {
+        latestSavedAt = prog.savedAt;
+      }
+
+      const card = document.createElement("a");
+      card.href = "#" + slugify(propertyName);
+      card.className = "listing-card";
+      const pct = prog.total === 0 ? 0 : Math.round((prog.checked / prog.total) * 100);
+      let statusCls = "listing-card-ok";
+      if (pct < 100 && prog.checked === 0) statusCls = "listing-card-none";
+      else if (pct < 100) statusCls = "listing-card-partial";
+      card.innerHTML =
+        '<span class="listing-card-name">' + propertyName + '</span>' +
+        '<span class="listing-card-progress ' + statusCls + '">' + prog.checked + ' / ' + prog.total + ' checked</span>';
+      grid.appendChild(card);
+    });
+
+    root.appendChild(grid);
+    updateProgressBar(checkedItems, totalItems);
+    updateSavedLabel(latestSavedAt);
+  }
+
+  function renderPropertyDetail(root, propertyName, showBack) {
+    if (showBack) {
+      const back = document.createElement("a");
+      back.href = "#";
+      back.className = "back-link";
+      back.textContent = "← All my listings";
+      root.appendChild(back);
+    }
+
+    const propSection = document.createElement("div");
+    propSection.className = "property-section";
+
+    const propHeader = document.createElement("div");
+    propHeader.className = "property-header property-header-static";
+    propHeader.innerHTML = "<span>" + propertyName + "</span>";
+
+    const propBody = document.createElement("div");
+    propBody.className = "property-body";
+
+    propSection.appendChild(propHeader);
+    propSection.appendChild(propBody);
+    root.appendChild(propSection);
+
+    buildPropertyChecklist(propBody, propertyName, (checked, total) => {
+      updateProgressBar(checked, total);
+      const state = loadPropertyState(cleanerId, slugify(propertyName));
+      updateSavedLabel(state._savedAt || null);
+    });
+  }
+
+  function render() {
+    const root = document.getElementById("checklist-root");
+    root.innerHTML = "";
+
+    if (properties.length === 1) {
+      renderPropertyDetail(root, properties[0], false);
+      return;
+    }
+
+    const hashProperty = slugInHash();
+    if (hashProperty) {
+      renderPropertyDetail(root, hashProperty, true);
+    } else {
+      renderPicker(root);
+    }
+  }
+
+  window.onhashchange = render;
+  render();
+
+  document.getElementById("reset-btn").onclick = () => {
+    const hashProperty = properties.length > 1 ? slugInHash() : properties[0];
+
+    if (hashProperty) {
+      if (confirm("Reset the checklist for " + hashProperty + "? This clears all quantities and checkmarks for this listing.")) {
+        localStorage.removeItem(storageKey(cleanerId, slugify(hashProperty)));
+        render();
+      }
+    } else {
+      if (confirm("Reset every listing's checklist for " + cleanerName + "? This clears all quantities and checkmarks.")) {
+        properties.forEach((propertyName) => {
+          localStorage.removeItem(storageKey(cleanerId, slugify(propertyName)));
+        });
+        render();
+      }
+    }
+  };
+
+  function buildRestockReport() {
+    const hashProperty = properties.length > 1 ? slugInHash() : properties[0];
+    const propertiesToReport = hashProperty ? [hashProperty] : properties;
+
+    const lines = [];
+    lines.push("Restock list — " + cleanerName + " — " + new Date().toLocaleDateString());
+    let anyShortages = false;
+
+    propertiesToReport.forEach((propertyName) => {
+      const slug = slugify(propertyName);
+      const state = loadPropertyState(cleanerId, slug);
+      const propLines = [];
+
+      const noteLines = [];
+
+      INVENTORY_DATA.forEach((cat) => {
+        const shortages = cat.items.filter((item) => {
+          const s = state[itemKey(cat.category, item.name)] || { qty: 0 };
+          return (s.qty || 0) < item.par;
+        });
+        if (shortages.length) {
+          propLines.push(cat.category + ":");
+          shortages.forEach((item) => {
+            const s = state[itemKey(cat.category, item.name)] || { qty: 0 };
+            const need = item.par - (s.qty || 0);
+            const noteSuffix = s.comment && s.comment.trim() ? " (" + s.comment.trim() + ")" : "";
+            propLines.push("  - " + item.name + ": " + need + " " + item.unit + noteSuffix);
+          });
+        }
+
+        cat.items.forEach((item) => {
+          const s = state[itemKey(cat.category, item.name)] || {};
+          const isShort = (s.qty || 0) < item.par;
+          if (!isShort && s.comment && s.comment.trim()) {
+            noteLines.push("  - " + item.name + ": " + s.comment.trim());
+          }
+        });
+      });
+
+      if (propLines.length) {
+        anyShortages = true;
+        lines.push("");
+        lines.push(propertyName + ":");
+        lines.push(...propLines);
+      }
+
+      if (noteLines.length) {
+        lines.push("");
+        lines.push(propertyName + " — other notes:");
+        lines.push(...noteLines);
+      }
+    });
+
+    if (!anyShortages) {
+      lines.push("");
+      lines.push(hashProperty
+        ? "Everything is at or above par at this listing. Nothing needed."
+        : "Everything is at or above par across all listings. Nothing needed.");
+    }
+
+    return {
+      text: lines.join("\n"),
+      anyShortages: anyShortages,
+      hashProperty: hashProperty,
+      propertiesToReport: propertiesToReport
+    };
+  }
+
+  function showListModal(title, subtitle, text) {
+    const titleEl = document.getElementById("modal-title");
+    const subtitleEl = document.getElementById("modal-subtitle");
+    if (titleEl) titleEl.textContent = title;
+    if (subtitleEl) subtitleEl.textContent = subtitle;
+    document.getElementById("copy-textarea").value = text;
+    document.getElementById("copy-modal-overlay").classList.add("open");
+  }
+
+  document.getElementById("copy-btn").onclick = () => {
+    const report = buildRestockReport();
+    showListModal("Shopping List", "Copied to clipboard. Paste this into a text or email to your manager.", report.text);
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(report.text).catch(() => {});
+    }
+  };
+
+  document.getElementById("close-modal-btn").onclick = () => {
+    document.getElementById("copy-modal-overlay").classList.remove("open");
+  };
+
+  document.getElementById("print-btn").onclick = () => {
+    window.print();
+  };
+
+  const submitBtn = document.getElementById("submit-btn");
+  const submitStatus = document.getElementById("submit-status");
+
+  function setSubmitStatus(text, cls) {
+    if (!submitStatus) return;
+    submitStatus.textContent = text;
+    submitStatus.className = "submit-status" + (cls ? " " + cls : "");
+  }
+
+  if (submitBtn) {
+    submitBtn.onclick = () => {
+      const report = buildRestockReport();
+
+      submitBtn.disabled = true;
+      setSubmitStatus("Submitting…", "");
+
+      fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          cleaner: cleanerName,
+          properties: report.propertiesToReport.join(", "),
+          submitted_at: new Date().toLocaleString(),
+          restock_list: report.text
+        })
+      })
+        .then((res) => {
+          submitBtn.disabled = false;
+          if (res.ok) {
+            setSubmitStatus("Submitted — thank you!", "success");
+            showListModal("Submitted!", "This shopping list was sent:", report.text);
+          } else {
+            setSubmitStatus("Couldn't submit. Try again, or use Copy Restock List instead.", "error");
+          }
+        })
+        .catch(() => {
+          submitBtn.disabled = false;
+          setSubmitStatus("Couldn't submit — check your connection and try again.", "error");
+        });
+    };
+  }
+}
+
+</script>
+<script>initChecklist();</script>
 
 <script>
 
@@ -131,7 +1099,27 @@ const SPANISH_TRANSLATIONS = {
 
   "Multi-surface Cleaner": "Limpiador multisuperficie",
   "Bathroom Cleaner": "Limpiador de baño",
-  "Disinfectant Spray": "Spray desinfectante"
+  "Disinfectant Spray": "Spray desinfectante",
+
+  // These are generated by app.js after the page loads (progress bar,
+  // the "pick a listing" screen, the copy/submit modal, and submit
+  // status messages) — without these, the interface looks like a mix
+  // of Spanish and English instead of matching the other cleaners' pages.
+  "Pick a listing to open its checklist:": "Elige una propiedad para abrir su lista:",
+  "All my listings": "Todas mis propiedades",
+  "checked": "marcados",
+  "Not saved yet": "Aún no guardado",
+  "Last saved": "Última vez guardado",
+  "Saved ": "Guardado ",
+
+  "Shopping List": "Lista de Compras",
+  "Copied to clipboard. Paste this into a text or email to your manager.": "Copiado al portapapeles. Pégalo en un mensaje o correo para tu gerente.",
+  "This shopping list was sent:": "Esta lista de compras fue enviada:",
+  "Submitted!": "¡Enviado!",
+  "Submitting…": "Enviando…",
+  "Submitted — thank you!": "Enviado — ¡gracias!",
+  "Couldn't submit. Try again, or use Copy Restock List instead.": "No se pudo enviar. Intenta de nuevo, o usa Copiar Lista de Reposición.",
+  "Couldn't submit — check your connection and try again.": "No se pudo enviar — revisa tu conexión e intenta de nuevo."
 };
 
 
@@ -139,7 +1127,17 @@ const SPANISH_TRANSLATIONS = {
  * Translate text that already exists on the page.
  */
 
+// Tracks which text nodes have already been translated, so a word like
+// "Detergent" -> "Detergente" (which still contains "Detergent") doesn't
+// get re-matched and mangled every time this function runs again.
+const translatedTextNodes = new WeakSet();
+
 function translateSpanishPage() {
+
+  // Stop watching while we make our own changes below — otherwise every
+  // edit we make (e.g. rewriting a status badge) triggers the observer
+  // again, which calls this function again, forever.
+  spanishObserver.disconnect();
 
   const walker = document.createTreeWalker(
     document.body,
@@ -164,9 +1162,20 @@ function translateSpanishPage() {
       return;
     }
 
+    if (translatedTextNodes.has(node)) {
+      return;
+    }
+
     let text = node.nodeValue;
 
-    Object.keys(SPANISH_TRANSLATIONS).forEach(function(english) {
+    // Sort by length (longest first) so phrases like "Mini Trash Bags"
+    // get replaced whole, instead of "Trash Bags" matching first and
+    // leaving a partial/incorrect translation behind.
+    const sortedKeys = Object.keys(SPANISH_TRANSLATIONS).sort(function(a, b) {
+      return b.length - a.length;
+    });
+
+    sortedKeys.forEach(function(english) {
 
       text = text.split(english).join(
         SPANISH_TRANSLATIONS[english]
@@ -175,6 +1184,7 @@ function translateSpanishPage() {
     });
 
     node.nodeValue = text;
+    translatedTextNodes.add(node);
 
   });
 
@@ -220,6 +1230,14 @@ function translateSpanishPage() {
     element.textContent = "OK";
   });
 
+  // Resume watching the whole page (not just the checklist) for changes —
+  // this also catches the copy/submit modal and the status message,
+  // which the app updates outside of #checklist-root.
+  spanishObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
 }
 
 
@@ -252,7 +1270,7 @@ const spanishObserver = new MutationObserver(function() {
 
 });
 
-spanishObserver.observe(document.getElementById("checklist-root"), {
+spanishObserver.observe(document.body, {
   childList: true,
   subtree: true
 });
