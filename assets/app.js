@@ -11,6 +11,11 @@
  * first; clicking a listing opens just that property's checklist, with a
  * back link to return to the picker. Cleaners with a single property go
  * straight to their checklist (no picker needed).
+ *
+ * Language: every piece of text below comes from t() / itemName() /
+ * categoryName() / unitName(), defined in i18n.js (loaded before this
+ * file). Load order in each HTML page must be:
+ *   items.js, par-overrides.js, i18n.js, app.js
  */
 
 // Where "Submit Restock List" sends the report. Set up at formspree.io.
@@ -41,7 +46,7 @@ function savePropertyState(cleanerId, propertySlug, state) {
   localStorage.setItem(storageKey(cleanerId, propertySlug), JSON.stringify(state));
   const savedEl = document.getElementById("last-saved");
   if (savedEl) {
-    savedEl.textContent = "Saved " + new Date().toLocaleTimeString();
+    savedEl.textContent = t("savedAt") + " " + new Date().toLocaleTimeString();
   }
 }
 
@@ -50,9 +55,9 @@ function itemKey(category, name) {
 }
 
 function statusFor(qty, par) {
-  if (qty <= 0) return { cls: "status-out", label: "OUT" };
-  if (qty < par) return { cls: "status-low", label: "LOW" };
-  return { cls: "status-ok", label: "OK" };
+  if (qty <= 0) return { cls: "status-out", key: "statusOut" };
+  if (qty < par) return { cls: "status-low", key: "statusLow" };
+  return { cls: "status-ok", key: "statusOk" };
 }
 
 function propertyProgress(cleanerId, propertyName) {
@@ -76,6 +81,7 @@ function initChecklist() {
     ? window.CLEANER_PROPERTIES
     : [cleanerName];
 
+  applyStaticStrings();
   document.getElementById("cleaner-name").textContent = cleanerName;
 
   function slugInHash() {
@@ -89,12 +95,12 @@ function initChecklist() {
     const label = document.getElementById("progress-label-text");
     const pct = total === 0 ? 0 : Math.round((checked / total) * 100);
     fill.style.width = pct + "%";
-    label.textContent = checked + " / " + total + " checked (" + pct + "%)";
+    label.textContent = checked + " / " + total + " " + t("checkedWord") + " (" + pct + "%)";
   }
 
   function updateSavedLabel(savedAt) {
     const el = document.getElementById("last-saved");
-    el.textContent = savedAt ? "Last saved " + new Date(savedAt).toLocaleString() : "Not saved yet";
+    el.textContent = savedAt ? t("lastSaved") + " " + new Date(savedAt).toLocaleString() : t("notSavedYet");
   }
 
   function buildPropertyChecklist(container, propertyName, onChange) {
@@ -110,7 +116,7 @@ function initChecklist() {
 
       const header = document.createElement("div");
       header.className = "category-header";
-      header.innerHTML = '<span>' + cat.category + '</span><span class="count"></span>';
+      header.innerHTML = '<span>' + categoryName(cat.category) + '</span><span class="count"></span>';
       header.addEventListener("click", () => {
         body.style.display = body.style.display === "none" ? "block" : "none";
       });
@@ -122,6 +128,7 @@ function initChecklist() {
         const key = itemKey(cat.category, item.name);
         const saved = state[key] || { qty: 0, checked: false, comment: "" };
         if (saved.checked) counts.checked++;
+        const effectivePar = parFor(propertyName, item.name, item.par);
 
         const row = document.createElement("div");
         row.className = "item-row";
@@ -133,11 +140,11 @@ function initChecklist() {
 
         const nameEl = document.createElement("div");
         nameEl.className = "item-name";
-        nameEl.innerHTML = item.name + ' <span class="unit">(' + item.unit + ")</span>";
+        nameEl.innerHTML = itemName(item.name) + ' <span class="unit">(' + unitName(item.unit) + ")</span>";
 
         const parBadge = document.createElement("span");
         parBadge.className = "par-badge";
-        parBadge.textContent = "Par: " + item.par;
+        parBadge.textContent = t("parLabel") + ": " + effectivePar;
 
         const qtyControl = document.createElement("div");
         qtyControl.className = "qty-control";
@@ -164,14 +171,14 @@ function initChecklist() {
         const commentInput = document.createElement("input");
         commentInput.type = "text";
         commentInput.className = "comment-input";
-        commentInput.placeholder = "Add a note (optional)";
+        commentInput.placeholder = t("addNote");
         commentInput.value = saved.comment || "";
 
         function refreshStatus() {
           const qty = parseInt(qtyInput.value, 10) || 0;
-          const s = statusFor(qty, item.par);
+          const s = statusFor(qty, effectivePar);
           statusTag.className = "status-tag " + s.cls;
-          statusTag.textContent = s.label;
+          statusTag.textContent = t(s.key);
         }
 
         function persist() {
@@ -235,7 +242,7 @@ function initChecklist() {
   function renderPicker(root) {
     const intro = document.createElement("p");
     intro.className = "picker-intro";
-    intro.textContent = "Pick a listing to open its checklist:";
+    intro.textContent = t("pickListing");
     root.appendChild(intro);
 
     const grid = document.createElement("div");
@@ -262,7 +269,7 @@ function initChecklist() {
       else if (pct < 100) statusCls = "listing-card-partial";
       card.innerHTML =
         '<span class="listing-card-name">' + propertyName + '</span>' +
-        '<span class="listing-card-progress ' + statusCls + '">' + prog.checked + ' / ' + prog.total + ' checked</span>';
+        '<span class="listing-card-progress ' + statusCls + '">' + prog.checked + ' / ' + prog.total + ' ' + t("checkedWord") + '</span>';
       grid.appendChild(card);
     });
 
@@ -276,7 +283,7 @@ function initChecklist() {
       const back = document.createElement("a");
       back.href = "#";
       back.className = "back-link";
-      back.textContent = "← All my listings";
+      back.textContent = t("allListings");
       root.appendChild(back);
     }
 
@@ -321,16 +328,20 @@ function initChecklist() {
   window.onhashchange = render;
   render();
 
+  if (typeof initLangToggle === "function") {
+    initLangToggle(render);
+  }
+
   document.getElementById("reset-btn").onclick = () => {
     const hashProperty = properties.length > 1 ? slugInHash() : properties[0];
 
     if (hashProperty) {
-      if (confirm("Reset the checklist for " + hashProperty + "? This clears all quantities and checkmarks for this listing.")) {
+      if (confirm(t("resetConfirmOne").replace("{listing}", hashProperty))) {
         localStorage.removeItem(storageKey(cleanerId, slugify(hashProperty)));
         render();
       }
     } else {
-      if (confirm("Reset every listing's checklist for " + cleanerName + "? This clears all quantities and checkmarks.")) {
+      if (confirm(t("resetConfirmAll").replace("{name}", cleanerName))) {
         properties.forEach((propertyName) => {
           localStorage.removeItem(storageKey(cleanerId, slugify(propertyName)));
         });
@@ -339,12 +350,15 @@ function initChecklist() {
     }
   };
 
-  function buildRestockReport() {
+  // forceLang, if given (e.g. "en"), builds the whole report in that
+  // language regardless of what's currently shown on screen. Used for
+  // the Formspree submission, which should always be readable in English.
+  function buildRestockReport(forceLang) {
     const hashProperty = properties.length > 1 ? slugInHash() : properties[0];
     const propertiesToReport = hashProperty ? [hashProperty] : properties;
 
     const lines = [];
-    lines.push("Restock list — " + cleanerName + " — " + new Date().toLocaleDateString());
+    lines.push(t("restockListHeader", forceLang) + " — " + cleanerName + " — " + new Date().toLocaleDateString());
     let anyShortages = false;
 
     propertiesToReport.forEach((propertyName) => {
@@ -357,23 +371,23 @@ function initChecklist() {
       INVENTORY_DATA.forEach((cat) => {
         const shortages = cat.items.filter((item) => {
           const s = state[itemKey(cat.category, item.name)] || { qty: 0 };
-          return (s.qty || 0) < item.par;
+          return (s.qty || 0) < parFor(propertyName, item.name, item.par);
         });
         if (shortages.length) {
-          propLines.push(cat.category + ":");
+          propLines.push(categoryName(cat.category, forceLang) + ":");
           shortages.forEach((item) => {
             const s = state[itemKey(cat.category, item.name)] || { qty: 0 };
-            const need = item.par - (s.qty || 0);
+            const need = parFor(propertyName, item.name, item.par) - (s.qty || 0);
             const noteSuffix = s.comment && s.comment.trim() ? " (" + s.comment.trim() + ")" : "";
-            propLines.push("  - " + item.name + ": " + need + " " + item.unit + noteSuffix);
+            propLines.push("  - " + itemName(item.name, forceLang) + ": " + need + " " + unitName(item.unit, forceLang) + noteSuffix);
           });
         }
 
         cat.items.forEach((item) => {
           const s = state[itemKey(cat.category, item.name)] || {};
-          const isShort = (s.qty || 0) < item.par;
+          const isShort = (s.qty || 0) < parFor(propertyName, item.name, item.par);
           if (!isShort && s.comment && s.comment.trim()) {
-            noteLines.push("  - " + item.name + ": " + s.comment.trim());
+            noteLines.push("  - " + itemName(item.name, forceLang) + ": " + s.comment.trim());
           }
         });
       });
@@ -387,7 +401,7 @@ function initChecklist() {
 
       if (noteLines.length) {
         lines.push("");
-        lines.push(propertyName + " — other notes:");
+        lines.push(propertyName + " — " + t("otherNotes", forceLang));
         lines.push(...noteLines);
       }
     });
@@ -395,8 +409,8 @@ function initChecklist() {
     if (!anyShortages) {
       lines.push("");
       lines.push(hashProperty
-        ? "Everything is at or above par at this listing. Nothing needed."
-        : "Everything is at or above par across all listings. Nothing needed.");
+        ? t("everythingParListing", forceLang)
+        : t("everythingParAll", forceLang));
     }
 
     return {
@@ -417,8 +431,10 @@ function initChecklist() {
   }
 
   document.getElementById("copy-btn").onclick = () => {
+    // Copy uses whatever language is currently on screen — it's for the
+    // cleaner's own reference.
     const report = buildRestockReport();
-    showListModal("Shopping List", "Copied to clipboard. Paste this into a text or email to your manager.", report.text);
+    showListModal(t("shoppingListTitle"), t("copiedSubtitle"), report.text);
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(report.text).catch(() => {});
@@ -444,10 +460,12 @@ function initChecklist() {
 
   if (submitBtn) {
     submitBtn.onclick = () => {
-      const report = buildRestockReport();
+      // Submissions always go out in English, regardless of the language
+      // currently selected on screen — this is what the manager reads.
+      const report = buildRestockReport("en");
 
       submitBtn.disabled = true;
-      setSubmitStatus("Submitting…", "");
+      setSubmitStatus(t("submitting"), "");
 
       fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
@@ -458,22 +476,24 @@ function initChecklist() {
         body: JSON.stringify({
           cleaner: cleanerName,
           properties: report.propertiesToReport.join(", "),
-          submitted_at: new Date().toLocaleString(),
+          submitted_at: new Date().toLocaleString("en-US"),
           restock_list: report.text
         })
       })
         .then((res) => {
           submitBtn.disabled = false;
           if (res.ok) {
-            setSubmitStatus("Submitted — thank you!", "success");
-            showListModal("Submitted!", "This shopping list was sent:", report.text);
+            setSubmitStatus(t("submittedThanks"), "success");
+            // Show exactly what was sent (English), so the confirmation
+            // matches the actual submission.
+            showListModal(t("submittedTitle"), t("thisWasSent"), report.text);
           } else {
-            setSubmitStatus("Couldn't submit. Try again, or use Copy Restock List instead.", "error");
+            setSubmitStatus(t("couldntSubmitTry"), "error");
           }
         })
         .catch(() => {
           submitBtn.disabled = false;
-          setSubmitStatus("Couldn't submit — check your connection and try again.", "error");
+          setSubmitStatus(t("couldntSubmitConn"), "error");
         });
     };
   }
