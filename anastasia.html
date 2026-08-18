@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,8 +19,14 @@
   </script>
 
   <div class="topbar">
-    <h1>Inventory Checklist</h1>
-    <p class="subtitle">Assigned to: <span id="cleaner-name"></span></p>
+    <div class="topbar-text">
+      <h1 id="page-heading">Inventory Checklist</h1>
+      <p class="subtitle"><span id="assigned-to-label">Assigned to:</span> <span id="cleaner-name"></span></p>
+    </div>
+    <div class="lang-toggle" role="group" aria-label="Language / Idioma">
+      <button type="button" class="lang-btn" id="lang-en-btn">English</button>
+      <button type="button" class="lang-btn" id="lang-es-btn">Español</button>
+    </div>
   </div>
 
   <div class="container">
@@ -45,7 +51,7 @@
     <div id="checklist-root"></div>
   </div>
 
-  <footer class="note">Data is saved only on this device/browser.</footer>
+  <footer class="note" data-i18n>Data is saved only on this device/browser.</footer>
 
   <div class="copy-modal-overlay" id="copy-modal-overlay">
     <div class="copy-modal">
@@ -59,6 +65,8 @@
   </div>
 
   <script src="assets/items.js"></script>
+  <script src="assets/par-overrides.js"></script>
+  <script src="assets/i18n.js"></script>
   <script src="assets/app.js"></script>
   <script>initChecklist();</script>
 </body>
