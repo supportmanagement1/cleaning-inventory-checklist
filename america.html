@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inventory Checklist — America</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <script>
+    window.CLEANER_ID = "america";
+    window.CLEANER_NAME = "America";
+    window.CLEANER_PROPERTIES = [
+      "Bates Walk"
+    ];
+  </script>
+
+  <div class="topbar">
+    <div class="topbar-text">
+      <h1 id="page-heading">Inventory Checklist</h1>
+      <p class="subtitle"><span id="assigned-to-label">Assigned to:</span> <span id="cleaner-name"></span></p>
+    </div>
+    <div class="lang-toggle" role="group" aria-label="Language / Idioma">
+      <button type="button" class="lang-btn" id="lang-en-btn">English</button>
+      <button type="button" class="lang-btn" id="lang-es-btn">Español</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-label-text">0 / 0 checked</span>
+        <span id="last-saved"></span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="copy-btn">Copy Restock List</button>
+      <button class="btn btn-primary" id="submit-btn">Submit Restock List</button>
+      <button class="btn btn-secondary" id="print-btn">Print</button>
+      <button class="btn btn-secondary" id="reset-btn">Reset</button>
+    </div>
+    <div id="submit-status" class="submit-status"></div>
+
+    <div id="checklist-root"></div>
+  </div>
+
+  <footer class="note" data-i18n>Data is saved only on this device/browser.</footer>
+
+  <div class="copy-modal-overlay" id="copy-modal-overlay">
+    <div class="copy-modal">
+      <h3 id="modal-title">Restock List</h3>
+      <p id="modal-subtitle">Copied to clipboard. Paste this into a text or email to your manager.</p>
+      <textarea id="copy-textarea" readonly></textarea>
+      <div class="actions">
+        <button class="btn btn-primary" id="close-modal-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/items.js"></script>
+  <script src="assets/par-overrides.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/app.js"></script>
+  <script>initChecklist();</script>
+</body>
+</html>
