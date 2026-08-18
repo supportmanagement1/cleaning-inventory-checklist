@@ -28,6 +28,11 @@ body {
   color: var(--cream);
   padding: 20px 24px;
   box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .topbar h1 {
@@ -39,6 +44,36 @@ body {
   margin: 0;
   font-size: 0.9rem;
   opacity: 0.85;
+}
+
+/* Language toggle, shown on the home page and every checklist page */
+.lang-toggle {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lang-btn {
+  background: rgba(251, 250, 243, 0.15);
+  border: 1.5px solid rgba(251, 250, 243, 0.45);
+  color: var(--cream);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.lang-btn:hover {
+  background: rgba(251, 250, 243, 0.3);
+}
+
+.lang-btn.active {
+  background: var(--cream);
+  color: var(--avocado-dark);
+  border-color: var(--cream);
 }
 
 .container {
@@ -426,4 +461,179 @@ footer.note {
 
 @media print {
   .actions, .topbar .actions, .btn, .copy-modal-overlay { display: none !important; }
+}
+
+/* ---------- Admin page (par level editor) ---------- */
+
+.admin-intro {
+  background: var(--cream);
+  border-left: 4px solid var(--avocado);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 20px 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.admin-property {
+  background: var(--avocado-dark);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  padding: 6px;
+  box-shadow: var(--shadow);
+}
+
+.admin-property-header {
+  color: var(--cream);
+  padding: 12px 14px;
+  font-weight: 700;
+  font-size: 1.02rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-property-header .admin-property-meta {
+  font-weight: 500;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.admin-property-body {
+  background: var(--cream);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.admin-property-body.collapsed {
+  display: none;
+}
+
+.admin-category-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--avocado-dark);
+  padding: 12px 12px 4px;
+}
+
+.admin-item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--avocado-light);
+  flex-wrap: wrap;
+}
+
+.admin-item-row:last-child { border-bottom: none; }
+
+.admin-item-name {
+  flex: 1 1 200px;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.admin-item-name .unit {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--avocado-dark);
+  opacity: 0.8;
+}
+
+.admin-par-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-par-field label {
+  font-size: 0.78rem;
+  color: var(--avocado-dark);
+  font-weight: 600;
+}
+
+.admin-par-input {
+  width: 60px;
+  text-align: center;
+  border: 1.5px solid var(--avocado-light);
+  border-radius: 6px;
+  padding: 5px 2px;
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+
+.admin-par-input.admin-overridden {
+  border-color: var(--pit-brown);
+  background: #fdf1e6;
+  font-weight: 700;
+}
+
+.admin-default-hint {
+  font-size: 0.75rem;
+  color: var(--text-dark);
+  opacity: 0.55;
+  min-width: 70px;
+}
+
+.admin-reset-item {
+  background: none;
+  border: none;
+  color: var(--pit-brown);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  visibility: hidden;
+}
+
+.admin-par-input.admin-overridden ~ .admin-reset-item {
+  visibility: visible;
+}
+
+.admin-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--cream);
+  border-top: 2px solid var(--avocado);
+  padding: 14px 16px;
+  margin: 24px -16px 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  box-shadow: 0 -2px 8px rgba(47, 58, 37, 0.1);
+}
+
+.admin-bar .admin-change-count {
+  font-size: 0.85rem;
+  color: var(--text-dark);
+}
+
+.admin-output-wrap {
+  margin-top: 16px;
+}
+
+.admin-output {
+  width: 100%;
+  height: 320px;
+  border-radius: 8px;
+  border: 1.5px solid var(--avocado-light);
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  resize: vertical;
+  background: var(--text-dark);
+  color: #eafbe0;
+}
+
+.admin-output-hint {
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  margin: 10px 0;
+  line-height: 1.5;
 }
