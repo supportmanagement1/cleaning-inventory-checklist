@@ -3,40 +3,91 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Par Level Admin — Cleaning Inventory Checklists</title>
+<title>Inventory &amp; Par Level Admin — Cleaning Inventory Checklists</title>
 <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
+  <div id="admin-lock-overlay" style="position:fixed; inset:0; background:#f0f5e6; display:flex; align-items:center; justify-content:center; z-index:100; padding:16px;">
+    <div style="background:#fbfaf3; border-radius:12px; padding:28px 24px; max-width:320px; width:100%; box-shadow:0 2px 10px rgba(47,58,37,0.25); text-align:center;">
+      <h2 style="margin:0 0 8px; color:#4b6b3a; font-size:1.2rem;">Admin Access</h2>
+      <p style="margin:0 0 16px; font-size:0.9rem; color:#2f3a25;">Enter the password to continue.</p>
+      <input type="password" id="admin-lock-input" placeholder="Password" autocomplete="off" style="width:100%; padding:10px; border-radius:8px; border:1.5px solid #c3d9a4; font-size:1rem; margin-bottom:10px; box-sizing:border-box; font-family:inherit;" />
+      <button id="admin-lock-submit" type="button" style="width:100%; padding:10px; border:none; border-radius:8px; background:#4b6b3a; color:#fbfaf3; font-weight:600; cursor:pointer; font-size:0.95rem; font-family:inherit;">Unlock</button>
+      <p id="admin-lock-error" style="color:#c9573f; font-size:0.85rem; margin:10px 0 0; display:none;">Incorrect password. Try again.</p>
+    </div>
+  </div>
+
+  <div id="admin-content" style="display:none;">
   <div class="topbar">
     <div class="topbar-text">
-      <h1>Par Level Admin</h1>
-      <p class="subtitle">Edit minimum (par) levels for every property, all in one place.</p>
+      <h1>Inventory &amp; Par Level Admin</h1>
+      <p class="subtitle">Edit item names, units, and par levels for every property, all in one place.</p>
     </div>
   </div>
 
   <div class="container">
     <div class="admin-intro">
-      <strong>How this works:</strong> This page is not connected to a database — it's a tool for editing numbers and generating updated code. Adjust any par level below (fields you change are highlighted), then scroll down and click <strong>Generate updated code</strong>. Copy the result and paste it over <code>assets/par-overrides.js</code> on GitHub, the same way you've been updating other files. Nothing changes on the live site until you do that.
+      <strong>How this works:</strong> This page is not connected to a database — it's a tool for editing your inventory list and generating updated code.
+      <br><br>
+      <strong>Manage Items</strong> (below) lets you rename items or categories, change units, add or remove items, and set each item's default par level and Spanish translation.
+      <strong>Par Levels by Property</strong> (further down) lets you override an item's par level for one specific property only.
+      <br><br>
+      When you're done, scroll to the bottom and click <strong>Generate updated code</strong>. It produces the full updated contents of three files: <code>assets/items.js</code>, <code>assets/i18n.js</code>, and <code>assets/par-overrides.js</code>. Copy each one and paste it over the matching file on GitHub, the same way you've been updating other files. Nothing changes on the live site until you do that.
+      <br><br>
+      <strong>Heads up:</strong> renaming an item or a category clears any progress cleaners have already saved for it on their own devices, since their saved checklist entries are matched by name. Deleting an item removes it (and any saved progress for it) from every cleaner's checklist.
+      <br><br>
+      <button class="btn btn-secondary" id="admin-discard-btn" type="button" style="font-size:0.8rem;">Discard all changes (reload page)</button>
     </div>
+
+    <div id="items-validation-warning" style="display:none; background:#fdf1e6; border:1.5px solid #7a5230; color:#7a5230; border-radius:8px; padding:10px 14px; margin:10px 0; font-size:0.85rem; line-height:1.5;"></div>
+
+    <h2 style="color:#4b6b3a; font-size:1.15rem; margin:24px 0 4px;">Manage Items</h2>
+    <p style="font-size:0.85rem; color:#2f3a25; opacity:0.75; margin:0 0 12px;" id="items-change-summary">No item changes yet.</p>
+
+    <div id="manage-items-root"></div>
+
+    <button class="btn btn-secondary" id="admin-add-category-btn" type="button" style="margin:6px 0 28px;">+ Add category</button>
+
+    <h2 style="color:#4b6b3a; font-size:1.15rem; margin:24px 0 12px;">Par Levels by Property</h2>
 
     <div id="properties-root"></div>
 
     <div class="admin-bar">
-      <span class="admin-change-count" id="admin-change-count">No changes yet</span>
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <span class="admin-change-count" id="admin-change-count">No changes yet</span>
+      </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn btn-secondary" id="admin-reset-all-btn" type="button">Reset all to defaults</button>
+        <button class="btn btn-secondary" id="admin-reset-all-btn" type="button">Reset all par overrides to defaults</button>
         <button class="btn btn-primary" id="admin-generate-btn" type="button">Generate updated code</button>
       </div>
     </div>
 
-    <div class="admin-output-wrap" id="admin-output-wrap" style="display:none;">
+    <div class="admin-output-wrap" id="all-output-wrap" style="display:none;">
       <p class="admin-output-hint">
-        This is the full, updated contents of <code>assets/par-overrides.js</code>. On GitHub: open that file, click the pencil to edit, select all, paste this in, and commit.
+        <strong>1) assets/items.js</strong> — open that file on GitHub, click the pencil to edit, select all, paste this in, and commit.
       </p>
-      <textarea class="admin-output" id="admin-output" readonly></textarea>
+      <textarea class="admin-output" id="items-output" readonly></textarea>
+      <div class="actions" style="margin-top:10px; margin-bottom:24px;">
+        <button class="btn btn-primary" id="copy-items-btn" type="button">Copy to clipboard</button>
+        <span id="copy-items-confirm" style="font-size:0.85rem; opacity:0.8;"></span>
+      </div>
+
+      <p class="admin-output-hint">
+        <strong>2) assets/i18n.js</strong> — same steps: open that file on GitHub, pencil to edit, select all, paste this in, and commit.
+      </p>
+      <textarea class="admin-output" id="i18n-output" readonly></textarea>
+      <div class="actions" style="margin-top:10px; margin-bottom:24px;">
+        <button class="btn btn-primary" id="copy-i18n-btn" type="button">Copy to clipboard</button>
+        <span id="copy-i18n-confirm" style="font-size:0.85rem; opacity:0.8;"></span>
+      </div>
+
+      <p class="admin-output-hint">
+        <strong>3) assets/par-overrides.js</strong> — same steps again for this file.
+      </p>
+      <textarea class="admin-output" id="overrides-output" readonly></textarea>
       <div class="actions" style="margin-top:10px;">
-        <button class="btn btn-primary" id="admin-copy-btn" type="button">Copy to clipboard</button>
-        <span id="admin-copy-confirm" style="font-size:0.85rem; opacity:0.8;"></span>
+        <button class="btn btn-primary" id="copy-overrides-btn" type="button">Copy to clipboard</button>
+        <span id="copy-overrides-confirm" style="font-size:0.85rem; opacity:0.8;"></span>
       </div>
     </div>
   </div>
@@ -45,6 +96,7 @@
 
   <script src="assets/items.js"></script>
   <script src="assets/par-overrides.js"></script>
+  <script src="assets/i18n.js"></script>
   <script>
     // Which cleaner each property currently belongs to — display only,
     // just so it's clear at a glance what you're editing. Update this if
@@ -63,17 +115,74 @@
       "Bates Walk": "America"
     };
 
-    // Working copy of the overrides — edits below mutate this, not the
-    // original PAR_OVERRIDES, so "Generate updated code" always reflects
-    // exactly what's on screen.
+    function escapeQuotes(s) {
+      return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    }
+
+    // ---------- Working state ----------
+    // Everything below mutates in-memory copies, never the loaded
+    // INVENTORY_DATA / PAR_OVERRIDES / i18n dictionaries directly, so
+    // "Generate updated code" always reflects exactly what's on screen
+    // and nothing changes on the live site until you paste the result back.
+
+    const workingUnits = {};
+    Object.keys(ES_UNIT_NAMES || {}).forEach((u) => {
+      workingUnits[u] = ES_UNIT_NAMES[u];
+    });
+    INVENTORY_DATA.forEach((cat) => {
+      cat.items.forEach((item) => {
+        if (!(item.unit in workingUnits)) workingUnits[item.unit] = item.unit;
+      });
+    });
+
+    const workingCategories = INVENTORY_DATA.map((cat) => ({
+      category: cat.category,
+      categoryEs: (ES_CATEGORY_NAMES || {})[cat.category] || "",
+      items: cat.items.map((item) => ({
+        name: item.name,
+        nameEs: (ES_ITEM_NAMES || {})[item.name] || "",
+        unit: item.unit,
+        par: item.par,
+        origName: item.name
+      }))
+    }));
+
     const workingOverrides = {};
     Object.keys(PAR_OVERRIDES).forEach((prop) => {
       workingOverrides[prop] = Object.assign({}, PAR_OVERRIDES[prop]);
     });
 
-    const root = document.getElementById("properties-root");
-    const changeCountEl = document.getElementById("admin-change-count");
+    // Property list is fixed (properties aren't added/removed from this
+    // page) — computed once, sorted by cleaner then property name.
+    const propertyNames = Object.keys(PAR_OVERRIDES).sort((a, b) => {
+      const cleanerA = PROPERTY_CLEANER[a] || "";
+      const cleanerB = PROPERTY_CLEANER[b] || "";
+      if (cleanerA !== cleanerB) return cleanerA.localeCompare(cleanerB);
+      return a.localeCompare(b);
+    });
+
     const allParInputs = [];
+    let itemsDirty = false;
+
+    function deleteOverridesForName(name) {
+      Object.keys(workingOverrides).forEach((prop) => {
+        if (Object.prototype.hasOwnProperty.call(workingOverrides[prop], name)) {
+          delete workingOverrides[prop][name];
+        }
+      });
+    }
+
+    function markItemsDirty() {
+      itemsDirty = true;
+      updateItemsChangeSummary();
+    }
+
+    function updateItemsChangeSummary() {
+      const el = document.getElementById("items-change-summary");
+      el.textContent = itemsDirty
+        ? "Unsaved item/unit changes — click Generate updated code below when you're ready."
+        : "No item changes yet.";
+    }
 
     function countChanges() {
       let count = 0;
@@ -84,115 +193,334 @@
     }
 
     function updateChangeCount() {
+      const changeCountEl = document.getElementById("admin-change-count");
       const count = countChanges();
       changeCountEl.textContent = count === 0
-        ? "No changes yet"
+        ? "No par-level overrides yet"
         : count + " item" + (count === 1 ? "" : "s") + " overridden from default";
     }
 
-    // Sort properties by cleaner name, then property name, so related
-    // properties group together.
-    const propertyNames = Object.keys(PAR_OVERRIDES).sort((a, b) => {
-      const cleanerA = PROPERTY_CLEANER[a] || "";
-      const cleanerB = PROPERTY_CLEANER[b] || "";
-      if (cleanerA !== cleanerB) return cleanerA.localeCompare(cleanerB);
-      return a.localeCompare(b);
-    });
+    // ---------- Unit picker (shared across all items) ----------
 
-    propertyNames.forEach((propertyName) => {
-      const section = document.createElement("div");
-      section.className = "admin-property";
+    function buildUnitSelect(item) {
+      const select = document.createElement("select");
+      select.style.cssText = "width:118px; padding:6px 4px; border-radius:6px; border:1.5px solid #c3d9a4; font-family:inherit; font-size:0.85rem;";
 
-      const header = document.createElement("div");
-      header.className = "admin-property-header";
-      const cleanerLabel = PROPERTY_CLEANER[propertyName] ? " — " + PROPERTY_CLEANER[propertyName] : "";
-      header.innerHTML = "<span>" + propertyName + "<span class=\"admin-property-meta\">" + cleanerLabel + "</span></span><span class=\"admin-property-meta\">▾</span>";
+      Object.keys(workingUnits).sort().forEach((u) => {
+        const opt = document.createElement("option");
+        opt.value = u;
+        opt.textContent = u;
+        if (u === item.unit) opt.selected = true;
+        select.appendChild(opt);
+      });
+      const addOpt = document.createElement("option");
+      addOpt.value = "__new__";
+      addOpt.textContent = "+ Add new unit…";
+      select.appendChild(addOpt);
 
-      const body = document.createElement("div");
-      body.className = "admin-property-body";
-
-      header.addEventListener("click", () => {
-        body.classList.toggle("collapsed");
+      select.addEventListener("change", () => {
+        if (select.value === "__new__") {
+          const newUnitEn = prompt('New unit name (English), e.g. "box":');
+          if (!newUnitEn || !newUnitEn.trim()) {
+            select.value = item.unit;
+            return;
+          }
+          const trimmedEn = newUnitEn.trim();
+          const newUnitEs = prompt('Spanish translation for "' + trimmedEn + '" (e.g. "caja"):') || trimmedEn;
+          workingUnits[trimmedEn] = newUnitEs.trim() || trimmedEn;
+          item.unit = trimmedEn;
+          markItemsDirty();
+          renderItemsSection();
+          renderParSection();
+        } else {
+          item.unit = select.value;
+          markItemsDirty();
+          renderParSection();
+        }
       });
 
-      INVENTORY_DATA.forEach((cat) => {
-        const catLabel = document.createElement("div");
-        catLabel.className = "admin-category-label";
-        catLabel.textContent = cat.category;
-        body.appendChild(catLabel);
+      return select;
+    }
+
+    // ---------- Section A: Manage Items ----------
+
+    function renderItemsSection() {
+      const itemsRoot = document.getElementById("manage-items-root");
+      itemsRoot.innerHTML = "";
+
+      workingCategories.forEach((cat) => {
+        const catBlock = document.createElement("div");
+        catBlock.style.cssText = "background:#4b6b3a; border-radius:12px; margin-bottom:16px; padding:6px; box-shadow:0 2px 8px rgba(47,58,37,0.12);";
+
+        const catHeader = document.createElement("div");
+        catHeader.style.cssText = "display:flex; align-items:center; gap:10px; padding:10px 12px; flex-wrap:wrap;";
+
+        const catNameEn = document.createElement("input");
+        catNameEn.type = "text";
+        catNameEn.value = cat.category;
+        catNameEn.placeholder = "Category name (English)";
+        catNameEn.style.cssText = "flex:1 1 180px; padding:7px 9px; border-radius:6px; border:1.5px solid #97b86e; font-family:inherit; font-weight:700;";
+        catNameEn.addEventListener("input", () => {
+          cat.category = catNameEn.value;
+          markItemsDirty();
+          renderParSection();
+        });
+
+        const catNameEs = document.createElement("input");
+        catNameEs.type = "text";
+        catNameEs.value = cat.categoryEs;
+        catNameEs.placeholder = "Category name (Spanish)";
+        catNameEs.style.cssText = "flex:1 1 180px; padding:7px 9px; border-radius:6px; border:1.5px solid #97b86e; font-family:inherit;";
+        catNameEs.addEventListener("input", () => {
+          cat.categoryEs = catNameEs.value;
+          markItemsDirty();
+        });
+
+        const removeCatBtn = document.createElement("button");
+        removeCatBtn.type = "button";
+        removeCatBtn.className = "btn btn-secondary";
+        removeCatBtn.textContent = "Remove category";
+        removeCatBtn.style.cssText = "font-size:0.78rem; padding:6px 10px; flex-shrink:0;";
+        removeCatBtn.addEventListener("click", () => {
+          if (!confirm('Remove category "' + cat.category + '" and all ' + cat.items.length + ' item(s) in it? This also removes any custom par levels set for those items.')) return;
+          cat.items.forEach((it) => deleteOverridesForName(it.name));
+          const idx = workingCategories.indexOf(cat);
+          if (idx > -1) workingCategories.splice(idx, 1);
+          markItemsDirty();
+          renderItemsSection();
+          renderParSection();
+        });
+
+        catHeader.appendChild(catNameEn);
+        catHeader.appendChild(catNameEs);
+        catHeader.appendChild(removeCatBtn);
+
+        const catBody = document.createElement("div");
+        catBody.style.cssText = "background:#fbfaf3; border-radius:10px; padding:8px;";
+
+        const colHeader = document.createElement("div");
+        colHeader.style.cssText = "display:flex; gap:8px; padding:2px 6px 6px; flex-wrap:wrap; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:#4b6b3a; opacity:0.75;";
+        colHeader.innerHTML =
+          '<span style="flex:1 1 150px;">English name</span>' +
+          '<span style="flex:1 1 150px;">Spanish name</span>' +
+          '<span style="width:118px;">Unit</span>' +
+          '<span style="width:60px;">Par</span>' +
+          '<span style="width:74px;"></span>';
+        catBody.appendChild(colHeader);
 
         cat.items.forEach((item) => {
           const row = document.createElement("div");
-          row.className = "admin-item-row";
+          row.style.cssText = "display:flex; align-items:center; gap:8px; padding:7px 6px; border-bottom:1px solid #c3d9a4; flex-wrap:wrap;";
 
-          const nameEl = document.createElement("div");
-          nameEl.className = "admin-item-name";
-          nameEl.innerHTML = item.name + ' <span class="unit">(' + item.unit + ")</span>";
-
-          const fieldWrap = document.createElement("div");
-          fieldWrap.className = "admin-par-field";
-
-          const label = document.createElement("label");
-          label.textContent = "Par";
-
-          const input = document.createElement("input");
-          input.type = "number";
-          input.min = "0";
-          input.className = "admin-par-input";
-          const currentOverride = workingOverrides[propertyName][item.name];
-          const effective = currentOverride !== undefined ? currentOverride : item.par;
-          input.value = effective;
-          allParInputs.push({ input, propertyName, itemName: item.name, defaultPar: item.par });
-
-          const hint = document.createElement("span");
-          hint.className = "admin-default-hint";
-          hint.textContent = "default: " + item.par;
-
-          const resetBtn = document.createElement("button");
-          resetBtn.type = "button";
-          resetBtn.className = "admin-reset-item";
-          resetBtn.textContent = "Reset";
-
-          function refreshOverrideState() {
-            const isOverridden = Object.prototype.hasOwnProperty.call(workingOverrides[propertyName], item.name);
-            input.classList.toggle("admin-overridden", isOverridden);
-          }
-          refreshOverrideState();
-
-          input.addEventListener("input", () => {
-            const parsed = parseInt(input.value, 10);
-            if (!Number.isFinite(parsed) || parsed < 0) return;
-            if (parsed === item.par) {
-              delete workingOverrides[propertyName][item.name];
-            } else {
-              workingOverrides[propertyName][item.name] = parsed;
+          const nameEnInput = document.createElement("input");
+          nameEnInput.type = "text";
+          nameEnInput.value = item.name;
+          nameEnInput.placeholder = "English name";
+          nameEnInput.style.cssText = "flex:1 1 150px; padding:6px 8px; border-radius:6px; border:1.5px solid #c3d9a4; font-family:inherit; font-size:0.9rem;";
+          nameEnInput.addEventListener("input", () => {
+            const oldVal = item.name;
+            const newVal = nameEnInput.value;
+            if (oldVal !== newVal) {
+              Object.keys(workingOverrides).forEach((prop) => {
+                const ov = workingOverrides[prop];
+                if (Object.prototype.hasOwnProperty.call(ov, oldVal)) {
+                  const val = ov[oldVal];
+                  delete ov[oldVal];
+                  ov[newVal] = val;
+                }
+              });
+              item.name = newVal;
+              markItemsDirty();
+              renderParSection();
             }
-            refreshOverrideState();
-            updateChangeCount();
           });
 
-          resetBtn.addEventListener("click", () => {
-            delete workingOverrides[propertyName][item.name];
-            input.value = item.par;
-            refreshOverrideState();
-            updateChangeCount();
+          const nameEsInput = document.createElement("input");
+          nameEsInput.type = "text";
+          nameEsInput.value = item.nameEs;
+          nameEsInput.placeholder = "Spanish name";
+          nameEsInput.style.cssText = "flex:1 1 150px; padding:6px 8px; border-radius:6px; border:1.5px solid #c3d9a4; font-family:inherit; font-size:0.9rem;";
+          nameEsInput.addEventListener("input", () => {
+            item.nameEs = nameEsInput.value;
+            markItemsDirty();
           });
 
-          fieldWrap.appendChild(label);
-          fieldWrap.appendChild(input);
-          fieldWrap.appendChild(hint);
-          fieldWrap.appendChild(resetBtn);
+          const unitSelect = buildUnitSelect(item);
 
-          row.appendChild(nameEl);
-          row.appendChild(fieldWrap);
-          body.appendChild(row);
+          const parInput = document.createElement("input");
+          parInput.type = "number";
+          parInput.min = "0";
+          parInput.value = item.par;
+          parInput.style.cssText = "width:60px; text-align:center; padding:6px 2px; border-radius:6px; border:1.5px solid #c3d9a4; font-family:inherit;";
+          parInput.addEventListener("input", () => {
+            const parsed = parseInt(parInput.value, 10);
+            if (!Number.isFinite(parsed) || parsed < 0) return;
+            item.par = parsed;
+            markItemsDirty();
+            renderParSection();
+          });
+
+          const removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "btn btn-secondary";
+          removeBtn.textContent = "Remove";
+          removeBtn.style.cssText = "font-size:0.75rem; padding:6px 8px; width:74px;";
+          removeBtn.addEventListener("click", () => {
+            if (!confirm('Remove "' + item.name + '"? This also removes any custom par levels set for it.')) return;
+            deleteOverridesForName(item.name);
+            const idx = cat.items.indexOf(item);
+            if (idx > -1) cat.items.splice(idx, 1);
+            markItemsDirty();
+            renderItemsSection();
+            renderParSection();
+          });
+
+          row.appendChild(nameEnInput);
+          row.appendChild(nameEsInput);
+          row.appendChild(unitSelect);
+          row.appendChild(parInput);
+          row.appendChild(removeBtn);
+          catBody.appendChild(row);
         });
+
+        const addItemBtn = document.createElement("button");
+        addItemBtn.type = "button";
+        addItemBtn.className = "btn btn-secondary";
+        addItemBtn.textContent = "+ Add item";
+        addItemBtn.style.cssText = "margin:8px 4px 4px; font-size:0.82rem;";
+        addItemBtn.addEventListener("click", () => {
+          const defaultUnit = Object.keys(workingUnits)[0] || "pcs";
+          cat.items.push({ name: "New Item", nameEs: "", unit: defaultUnit, par: 1, origName: null });
+          markItemsDirty();
+          renderItemsSection();
+          renderParSection();
+        });
+        catBody.appendChild(addItemBtn);
+
+        catBlock.appendChild(catHeader);
+        catBlock.appendChild(catBody);
+        itemsRoot.appendChild(catBlock);
       });
 
-      section.appendChild(header);
-      section.appendChild(body);
-      root.appendChild(section);
+      updateItemsChangeSummary();
+    }
+
+    document.getElementById("admin-add-category-btn").addEventListener("click", () => {
+      const nameEn = prompt("New category name (English):");
+      if (!nameEn || !nameEn.trim()) return;
+      const nameEs = prompt('Spanish translation for "' + nameEn.trim() + '" (optional — OK to leave blank):') || "";
+      workingCategories.push({ category: nameEn.trim(), categoryEs: nameEs.trim(), items: [] });
+      markItemsDirty();
+      renderItemsSection();
+      renderParSection();
     });
+
+    // ---------- Section B: Par Levels by Property ----------
+
+    function renderParSection() {
+      const root = document.getElementById("properties-root");
+      root.innerHTML = "";
+      allParInputs.length = 0;
+
+      propertyNames.forEach((propertyName) => {
+        const section = document.createElement("div");
+        section.className = "admin-property";
+
+        const header = document.createElement("div");
+        header.className = "admin-property-header";
+        const cleanerLabel = PROPERTY_CLEANER[propertyName] ? " — " + PROPERTY_CLEANER[propertyName] : "";
+        header.innerHTML = "<span>" + propertyName + "<span class=\"admin-property-meta\">" + cleanerLabel + "</span></span><span class=\"admin-property-meta\">▾</span>";
+
+        const body = document.createElement("div");
+        body.className = "admin-property-body";
+
+        header.addEventListener("click", () => {
+          body.classList.toggle("collapsed");
+        });
+
+        if (!workingOverrides[propertyName]) workingOverrides[propertyName] = {};
+
+        workingCategories.forEach((cat) => {
+          const catLabel = document.createElement("div");
+          catLabel.className = "admin-category-label";
+          catLabel.textContent = cat.category;
+          body.appendChild(catLabel);
+
+          cat.items.forEach((item) => {
+            const row = document.createElement("div");
+            row.className = "admin-item-row";
+
+            const nameEl = document.createElement("div");
+            nameEl.className = "admin-item-name";
+            nameEl.innerHTML = item.name + ' <span class="unit">(' + item.unit + ")</span>";
+
+            const fieldWrap = document.createElement("div");
+            fieldWrap.className = "admin-par-field";
+
+            const label = document.createElement("label");
+            label.textContent = "Par";
+
+            const input = document.createElement("input");
+            input.type = "number";
+            input.min = "0";
+            input.className = "admin-par-input";
+            const currentOverride = workingOverrides[propertyName][item.name];
+            const effective = currentOverride !== undefined ? currentOverride : item.par;
+            input.value = effective;
+            allParInputs.push({ input, propertyName, itemName: item.name, defaultPar: item.par });
+
+            const hint = document.createElement("span");
+            hint.className = "admin-default-hint";
+            hint.textContent = "default: " + item.par;
+
+            const resetBtn = document.createElement("button");
+            resetBtn.type = "button";
+            resetBtn.className = "admin-reset-item";
+            resetBtn.textContent = "Reset";
+
+            function refreshOverrideState() {
+              const isOverridden = Object.prototype.hasOwnProperty.call(workingOverrides[propertyName], item.name);
+              input.classList.toggle("admin-overridden", isOverridden);
+            }
+            refreshOverrideState();
+
+            input.addEventListener("input", () => {
+              const parsed = parseInt(input.value, 10);
+              if (!Number.isFinite(parsed) || parsed < 0) return;
+              if (parsed === item.par) {
+                delete workingOverrides[propertyName][item.name];
+              } else {
+                workingOverrides[propertyName][item.name] = parsed;
+              }
+              refreshOverrideState();
+              updateChangeCount();
+            });
+
+            resetBtn.addEventListener("click", () => {
+              delete workingOverrides[propertyName][item.name];
+              input.value = item.par;
+              refreshOverrideState();
+              updateChangeCount();
+            });
+
+            fieldWrap.appendChild(label);
+            fieldWrap.appendChild(input);
+            fieldWrap.appendChild(hint);
+            fieldWrap.appendChild(resetBtn);
+
+            row.appendChild(nameEl);
+            row.appendChild(fieldWrap);
+            body.appendChild(row);
+          });
+        });
+
+        section.appendChild(header);
+        section.appendChild(body);
+        root.appendChild(section);
+      });
+
+      updateChangeCount();
+    }
 
     document.getElementById("admin-reset-all-btn").addEventListener("click", () => {
       if (!confirm("Reset every property to its default par levels? This clears all overrides shown on this page (it won't change anything live until you generate and paste the code).")) {
@@ -208,7 +536,222 @@
       updateChangeCount();
     });
 
-    function generateFileContents() {
+    document.getElementById("admin-discard-btn").addEventListener("click", () => {
+      if (!confirm("Discard every change on this page — item edits and par overrides — and reload from what's currently live? This cannot be undone.")) return;
+      location.reload();
+    });
+
+    // ---------- Generate updated code ----------
+
+    function validateItems() {
+      const problems = [];
+      const seen = {};
+      workingCategories.forEach((cat) => {
+        if (!cat.category.trim()) problems.push("A category name is empty.");
+      });
+      workingCategories.forEach((cat) => {
+        cat.items.forEach((item) => {
+          const key = item.name.trim().toLowerCase();
+          if (!key) {
+            problems.push('An item in "' + cat.category + '" has no name.');
+            return;
+          }
+          if (seen[key]) {
+            problems.push('Two items are both named "' + item.name.trim() + '" — item names need to be unique.');
+          }
+          seen[key] = true;
+        });
+      });
+      return problems;
+    }
+
+    function buildItemsJsContent() {
+      const lines = [];
+      lines.push("/**");
+      lines.push(" * Shared inventory data for all cleaner checklists.");
+      lines.push(" * Edit `par` (par level) and `unit` here — changes apply to every cleaner page.");
+      lines.push(" *");
+      lines.push(" * This file is meant to be edited from admin.html's \"Manage Items\" section —");
+      lines.push(" * open that page, make your changes, and it will generate an updated version");
+      lines.push(" * of this file (and assets/i18n.js) for you to paste back in.");
+      lines.push(" */");
+      lines.push("const INVENTORY_DATA = [");
+      workingCategories.forEach((cat, ci) => {
+        lines.push("  {");
+        lines.push('    category: "' + escapeQuotes(cat.category) + '",');
+        lines.push("    items: [");
+        cat.items.forEach((item, ii) => {
+          const comma = ii < cat.items.length - 1 ? "," : "";
+          lines.push('      { name: "' + escapeQuotes(item.name) + '", unit: "' + escapeQuotes(item.unit) + '", par: ' + item.par + " }" + comma);
+        });
+        lines.push("    ]");
+        lines.push("  }" + (ci < workingCategories.length - 1 ? "," : ""));
+      });
+      lines.push("];");
+      lines.push("");
+      return lines.join("\n");
+    }
+
+    // Snapshot of UI_STRINGS as loaded — unaffected by item edits, just
+    // carried through unchanged into the regenerated i18n.js.
+    const UI_STRINGS_SNAPSHOT = JSON.parse(JSON.stringify(UI_STRINGS));
+
+    const I18N_FUNCTIONS_SOURCE = [
+      "function getLang() {",
+      '  return localStorage.getItem(LANG_STORAGE_KEY) || "es";',
+      "}",
+      "",
+      "function setLang(lang) {",
+      "  localStorage.setItem(LANG_STORAGE_KEY, lang);",
+      "}",
+      "",
+      "// Every lookup below takes an optional langOverride, so a specific piece",
+      "// of text (e.g. the report sent to Formspree) can be forced into a",
+      "// language regardless of what's currently selected on screen.",
+      "function t(key, langOverride) {",
+      "  const lang = langOverride || getLang();",
+      "  const table = UI_STRINGS[lang] || UI_STRINGS.en;",
+      "  return table[key] !== undefined ? table[key] : (UI_STRINGS.en[key] || key);",
+      "}",
+      "",
+      "function itemName(englishName, langOverride) {",
+      "  const lang = langOverride || getLang();",
+      '  if (lang !== "es") return englishName;',
+      "  return ES_ITEM_NAMES[englishName] || englishName;",
+      "}",
+      "",
+      "function categoryName(englishName, langOverride) {",
+      "  const lang = langOverride || getLang();",
+      '  if (lang !== "es") return englishName;',
+      "  return ES_CATEGORY_NAMES[englishName] || englishName;",
+      "}",
+      "",
+      "function unitName(englishUnit, langOverride) {",
+      "  const lang = langOverride || getLang();",
+      '  if (lang !== "es") return englishUnit;',
+      "  return ES_UNIT_NAMES[englishUnit] || englishUnit;",
+      "}",
+      "",
+      "// Updates every piece of static (non-dynamically-built) text on the",
+      "// current page to match the current language. Safe to call on any page —",
+      "// elements that don't exist here are just skipped.",
+      "function applyStaticStrings() {",
+      "  document.documentElement.lang = getLang();",
+      "",
+      "  const set = (id, key) => {",
+      "    const el = document.getElementById(id);",
+      "    if (el) el.textContent = t(key);",
+      "  };",
+      "",
+      "  // Home page",
+      '  set("index-heading", "indexHeading");',
+      '  set("index-subtitle", "indexSubtitle");',
+      '  set("index-intro", "indexIntro");',
+      '  set("index-howto-label", "indexHowToLabel");',
+      '  set("index-howto-body", "indexHowToBody");',
+      "",
+      "  // Checklist pages",
+      '  const pageHeadingEl = document.getElementById("page-heading");',
+      "  if (pageHeadingEl) {",
+      '    document.title = t("pageTitle") + " — " + (window.CLEANER_NAME || "");',
+      "  }",
+      '  set("page-heading", "pageHeading");',
+      '  set("assigned-to-label", "assignedTo");',
+      '  set("copy-btn", "copyBtn");',
+      '  set("submit-btn", "submitBtn");',
+      '  set("print-btn", "printBtn");',
+      '  set("reset-btn", "resetBtn");',
+      '  set("modal-title", "modalDefaultTitle");',
+      '  set("modal-subtitle", "modalDefaultSubtitle");',
+      '  set("close-modal-btn", "closeBtn");',
+      "",
+      '  const footerEl = document.querySelector("footer.note");',
+      '  if (footerEl && footerEl.hasAttribute("data-i18n")) {',
+      '    footerEl.textContent = t("footerNote");',
+      "  }",
+      "",
+      '  const enBtn = document.getElementById("lang-en-btn");',
+      '  const esBtn = document.getElementById("lang-es-btn");',
+      '  if (enBtn) enBtn.classList.toggle("active", getLang() === "en");',
+      '  if (esBtn) esBtn.classList.toggle("active", getLang() === "es");',
+      "}",
+      "",
+      '// Wires up the "English" / "Español" buttons, if present on the page.',
+      "// rerenderFn (optional) is called after switching, so a page with",
+      "// dynamically-built content (like a checklist) can rebuild it in the",
+      "// new language.",
+      "function initLangToggle(rerenderFn) {",
+      '  const enBtn = document.getElementById("lang-en-btn");',
+      '  const esBtn = document.getElementById("lang-es-btn");',
+      "",
+      "  function switchTo(lang) {",
+      "    if (getLang() === lang) return;",
+      "    setLang(lang);",
+      "    applyStaticStrings();",
+      '    if (typeof rerenderFn === "function") rerenderFn();',
+      "  }",
+      "",
+      '  if (enBtn) enBtn.addEventListener("click", () => switchTo("en"));',
+      '  if (esBtn) esBtn.addEventListener("click", () => switchTo("es"));',
+      "",
+      "  applyStaticStrings();",
+      "}"
+    ].join("\n");
+
+    function buildI18nJsContent() {
+      const esItemNames = {};
+      workingCategories.forEach((cat) => cat.items.forEach((item) => {
+        esItemNames[item.name] = item.nameEs || item.name;
+      }));
+      const esCategoryNames = {};
+      workingCategories.forEach((cat) => {
+        esCategoryNames[cat.category] = cat.categoryEs || cat.category;
+      });
+      const esUnitNames = {};
+      Object.keys(workingUnits).sort().forEach((u) => {
+        esUnitNames[u] = workingUnits[u] || u;
+      });
+
+      const lines = [];
+      lines.push("/**");
+      lines.push(" * Site-wide language support (English / Spanish).");
+      lines.push(" *");
+      lines.push(" * Every page that wants bilingual text loads this file, then:");
+      lines.push(" *   - calls t(key) for UI strings");
+      lines.push(" *   - calls itemName(name) / categoryName(name) / unitName(unit) for");
+      lines.push(" *     inventory vocabulary (defined in items.js)");
+      lines.push(' *   - calls initLangToggle(rerenderFn) once, after the "EN"/"ES" buttons');
+      lines.push(" *     exist in the page, to wire them up");
+      lines.push(" *");
+      lines.push(" * The chosen language is stored under one shared key, so switching it on");
+      lines.push(" * any page (the home page or any cleaner's checklist) applies everywhere");
+      lines.push(" * else on the site too, on that same device/browser.");
+      lines.push(" *");
+      lines.push(' * The item/category/unit dictionaries below are meant to be edited from');
+      lines.push(" * admin.html's \"Manage Items\" section — open that page, edit names and");
+      lines.push(" * units there, and it will generate an updated version of this file for");
+      lines.push(" * you to paste back in.");
+      lines.push(" */");
+      lines.push("");
+      lines.push('const LANG_STORAGE_KEY = "site-lang";');
+      lines.push("");
+      lines.push("const UI_STRINGS = " + JSON.stringify(UI_STRINGS_SNAPSHOT, null, 2) + ";");
+      lines.push("");
+      lines.push("// Item, category, and unit names — English is the canonical name used in");
+      lines.push("// items.js; these are the Spanish equivalents shown when Spanish is");
+      lines.push("// selected. Edit these from admin.html's Manage Items section.");
+      lines.push("const ES_ITEM_NAMES = " + JSON.stringify(esItemNames, null, 2) + ";");
+      lines.push("");
+      lines.push("const ES_CATEGORY_NAMES = " + JSON.stringify(esCategoryNames, null, 2) + ";");
+      lines.push("");
+      lines.push("const ES_UNIT_NAMES = " + JSON.stringify(esUnitNames, null, 2) + ";");
+      lines.push("");
+      lines.push(I18N_FUNCTIONS_SOURCE);
+      lines.push("");
+      return lines.join("\n");
+    }
+
+    function buildOverridesJsContent() {
       const lines = [];
       lines.push("/**");
       lines.push(" * Custom par (minimum) levels, per property, for every cleaner's site.");
@@ -231,12 +774,12 @@
         const propComma = propIndex < propKeys.length - 1 ? "," : "";
 
         if (itemKeys.length === 0) {
-          lines.push('  "' + prop.replace(/"/g, '\\"') + '": {}' + propComma);
+          lines.push('  "' + escapeQuotes(prop) + '": {}' + propComma);
         } else {
-          lines.push('  "' + prop.replace(/"/g, '\\"') + '": {');
+          lines.push('  "' + escapeQuotes(prop) + '": {');
           itemKeys.forEach((itemKey, itemIndex) => {
             const itemComma = itemIndex < itemKeys.length - 1 ? "," : "";
-            lines.push('    "' + itemKey.replace(/"/g, '\\"') + '": ' + overrides[itemKey] + itemComma);
+            lines.push('    "' + escapeQuotes(itemKey) + '": ' + overrides[itemKey] + itemComma);
           });
           lines.push("  }" + propComma);
         }
@@ -259,17 +802,10 @@
       return lines.join("\n");
     }
 
-    document.getElementById("admin-generate-btn").addEventListener("click", () => {
-      const output = document.getElementById("admin-output");
-      output.value = generateFileContents();
-      document.getElementById("admin-output-wrap").style.display = "block";
-      document.getElementById("admin-output-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    document.getElementById("admin-copy-btn").addEventListener("click", () => {
-      const output = document.getElementById("admin-output");
+    function copyTextarea(id, confirmId) {
+      const output = document.getElementById(id);
       output.select();
-      const confirmEl = document.getElementById("admin-copy-confirm");
+      const confirmEl = document.getElementById(confirmId);
       if (navigator.clipboard) {
         navigator.clipboard.writeText(output.value)
           .then(() => { confirmEl.textContent = "Copied!"; setTimeout(() => confirmEl.textContent = "", 2000); })
@@ -277,9 +813,79 @@
       } else {
         confirmEl.textContent = "Text is selected — use Cmd+C to copy.";
       }
+    }
+
+    document.getElementById("admin-generate-btn").addEventListener("click", () => {
+      const problems = validateItems();
+      const warnEl = document.getElementById("items-validation-warning");
+      if (problems.length) {
+        warnEl.style.display = "block";
+        warnEl.innerHTML = "Fix these before generating code:<br>• " + problems.join("<br>• ");
+        warnEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      warnEl.style.display = "none";
+
+      document.getElementById("items-output").value = buildItemsJsContent();
+      document.getElementById("i18n-output").value = buildI18nJsContent();
+      document.getElementById("overrides-output").value = buildOverridesJsContent();
+
+      const wrap = document.getElementById("all-output-wrap");
+      wrap.style.display = "block";
+      wrap.scrollIntoView({ behavior: "smooth", block: "start" });
     });
 
-    updateChangeCount();
+    document.getElementById("copy-items-btn").addEventListener("click", () => copyTextarea("items-output", "copy-items-confirm"));
+    document.getElementById("copy-i18n-btn").addEventListener("click", () => copyTextarea("i18n-output", "copy-i18n-confirm"));
+    document.getElementById("copy-overrides-btn").addEventListener("click", () => copyTextarea("overrides-output", "copy-overrides-confirm"));
+
+    renderItemsSection();
+    renderParSection();
+  </script>
+  </div>
+
+  <script>
+    (function () {
+      // Simple speed-bump, not real security: this code is visible to
+      // anyone who views the page source. It's meant to stop cleaners
+      // from casually stumbling onto this page, not to stop someone who
+      // deliberately goes looking.
+      var ADMIN_PASSWORD = "2027";
+      var STORAGE_KEY = "admin-unlocked";
+      var overlay = document.getElementById("admin-lock-overlay");
+      var content = document.getElementById("admin-content");
+      var input = document.getElementById("admin-lock-input");
+      var submitBtn = document.getElementById("admin-lock-submit");
+      var errorEl = document.getElementById("admin-lock-error");
+
+      function unlock() {
+        overlay.style.display = "none";
+        content.style.display = "block";
+      }
+
+      if (localStorage.getItem(STORAGE_KEY) === "yes") {
+        unlock();
+      } else {
+        input.focus();
+      }
+
+      function tryUnlock() {
+        if (input.value === ADMIN_PASSWORD) {
+          localStorage.setItem(STORAGE_KEY, "yes");
+          errorEl.style.display = "none";
+          unlock();
+        } else {
+          errorEl.style.display = "block";
+          input.value = "";
+          input.focus();
+        }
+      }
+
+      submitBtn.addEventListener("click", tryUnlock);
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") tryUnlock();
+      });
+    })();
   </script>
 </body>
 </html>
