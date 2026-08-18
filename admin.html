@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Par Level Admin — Cleaning Inventory Checklists</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-text">
+      <h1>Par Level Admin</h1>
+      <p class="subtitle">Edit minimum (par) levels for every property, all in one place.</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="admin-intro">
+      <strong>How this works:</strong> This page is not connected to a database — it's a tool for editing numbers and generating updated code. Adjust any par level below (fields you change are highlighted), then scroll down and click <strong>Generate updated code</strong>. Copy the result and paste it over <code>assets/par-overrides.js</code> on GitHub, the same way you've been updating other files. Nothing changes on the live site until you do that.
+    </div>
+
+    <div id="properties-root"></div>
+
+    <div class="admin-bar">
+      <span class="admin-change-count" id="admin-change-count">No changes yet</span>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" id="admin-reset-all-btn" type="button">Reset all to defaults</button>
+        <button class="btn btn-primary" id="admin-generate-btn" type="button">Generate updated code</button>
+      </div>
+    </div>
+
+    <div class="admin-output-wrap" id="admin-output-wrap" style="display:none;">
+      <p class="admin-output-hint">
+        This is the full, updated contents of <code>assets/par-overrides.js</code>. On GitHub: open that file, click the pencil to edit, select all, paste this in, and commit.
+      </p>
+      <textarea class="admin-output" id="admin-output" readonly></textarea>
+      <div class="actions" style="margin-top:10px;">
+        <button class="btn btn-primary" id="admin-copy-btn" type="button">Copy to clipboard</button>
+        <span id="admin-copy-confirm" style="font-size:0.85rem; opacity:0.8;"></span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="note">This page is unlisted — it isn't linked from the home page. Keep its URL to yourself.</footer>
+
+  <script src="assets/items.js"></script>
+  <script src="assets/par-overrides.js"></script>
+  <script>
+    // Which cleaner each property currently belongs to — display only,
+    // just so it's clear at a glance what you're editing. Update this if
+    // you reassign a property to a different cleaner.
+    const PROPERTY_CLEANER = {
+      "Capitol Hill": "Anastasia",
+      "Ravensdale Cabin": "Anastasia",
+      "Lake Ridge Ramble": "Anastasia",
+      "Ballard Home": "Anastasia",
+      "Edgar's Bungalow": "Leila & Pedro",
+      "Saltar's Inn – Suite 1": "Maria",
+      "Saltar's Inn – Suite 2": "Maria",
+      "Saltar's Inn – Suite 3": "Maria",
+      "Casa Spanaway": "Jenny",
+      "Queen Anne": "Luda",
+      "Bates Walk": "America"
+    };
+
+    // Working copy of the overrides — edits below mutate this, not the
+    // original PAR_OVERRIDES, so "Generate updated code" always reflects
+    // exactly what's on screen.
+    const workingOverrides = {};
+    Object.keys(PAR_OVERRIDES).forEach((prop) => {
+      workingOverrides[prop] = Object.assign({}, PAR_OVERRIDES[prop]);
+    });
+
+    const root = document.getElementById("properties-root");
+    const changeCountEl = document.getElementById("admin-change-count");
+    const allParInputs = [];
+
+    function countChanges() {
+      let count = 0;
+      Object.keys(workingOverrides).forEach((prop) => {
+        count += Object.keys(workingOverrides[prop]).length;
+      });
+      return count;
+    }
+
+    function updateChangeCount() {
+      const count = countChanges();
+      changeCountEl.textContent = count === 0
+        ? "No changes yet"
+        : count + " item" + (count === 1 ? "" : "s") + " overridden from default";
+    }
+
+    // Sort properties by cleaner name, then property name, so related
+    // properties group together.
+    const propertyNames = Object.keys(PAR_OVERRIDES).sort((a, b) => {
+      const cleanerA = PROPERTY_CLEANER[a] || "";
+      const cleanerB = PROPERTY_CLEANER[b] || "";
+      if (cleanerA !== cleanerB) return cleanerA.localeCompare(cleanerB);
+      return a.localeCompare(b);
+    });
+
+    propertyNames.forEach((propertyName) => {
+      const section = document.createElement("div");
+      section.className = "admin-property";
+
+      const header = document.createElement("div");
+      header.className = "admin-property-header";
+      const cleanerLabel = PROPERTY_CLEANER[propertyName] ? " — " + PROPERTY_CLEANER[propertyName] : "";
+      header.innerHTML = "<span>" + propertyName + "<span class=\"admin-property-meta\">" + cleanerLabel + "</span></span><span class=\"admin-property-meta\">▾</span>";
+
+      const body = document.createElement("div");
+      body.className = "admin-property-body";
+
+      header.addEventListener("click", () => {
+        body.classList.toggle("collapsed");
+      });
+
+      INVENTORY_DATA.forEach((cat) => {
+        const catLabel = document.createElement("div");
+        catLabel.className = "admin-category-label";
+        catLabel.textContent = cat.category;
+        body.appendChild(catLabel);
+
+        cat.items.forEach((item) => {
+          const row = document.createElement("div");
+          row.className = "admin-item-row";
+
+          const nameEl = document.createElement("div");
+          nameEl.className = "admin-item-name";
+          nameEl.innerHTML = item.name + ' <span class="unit">(' + item.unit + ")</span>";
+
+          const fieldWrap = document.createElement("div");
+          fieldWrap.className = "admin-par-field";
+
+          const label = document.createElement("label");
+          label.textContent = "Par";
+
+          const input = document.createElement("input");
+          input.type = "number";
+          input.min = "0";
+          input.className = "admin-par-input";
+          const currentOverride = workingOverrides[propertyName][item.name];
+          const effective = currentOverride !== undefined ? currentOverride : item.par;
+          input.value = effective;
+          allParInputs.push({ input, propertyName, itemName: item.name, defaultPar: item.par });
+
+          const hint = document.createElement("span");
+          hint.className = "admin-default-hint";
+          hint.textContent = "default: " + item.par;
+
+          const resetBtn = document.createElement("button");
+          resetBtn.type = "button";
+          resetBtn.className = "admin-reset-item";
+          resetBtn.textContent = "Reset";
+
+          function refreshOverrideState() {
+            const isOverridden = Object.prototype.hasOwnProperty.call(workingOverrides[propertyName], item.name);
+            input.classList.toggle("admin-overridden", isOverridden);
+          }
+          refreshOverrideState();
+
+          input.addEventListener("input", () => {
+            const parsed = parseInt(input.value, 10);
+            if (!Number.isFinite(parsed) || parsed < 0) return;
+            if (parsed === item.par) {
+              delete workingOverrides[propertyName][item.name];
+            } else {
+              workingOverrides[propertyName][item.name] = parsed;
+            }
+            refreshOverrideState();
+            updateChangeCount();
+          });
+
+          resetBtn.addEventListener("click", () => {
+            delete workingOverrides[propertyName][item.name];
+            input.value = item.par;
+            refreshOverrideState();
+            updateChangeCount();
+          });
+
+          fieldWrap.appendChild(label);
+          fieldWrap.appendChild(input);
+          fieldWrap.appendChild(hint);
+          fieldWrap.appendChild(resetBtn);
+
+          row.appendChild(nameEl);
+          row.appendChild(fieldWrap);
+          body.appendChild(row);
+        });
+      });
+
+      section.appendChild(header);
+      section.appendChild(body);
+      root.appendChild(section);
+    });
+
+    document.getElementById("admin-reset-all-btn").addEventListener("click", () => {
+      if (!confirm("Reset every property to its default par levels? This clears all overrides shown on this page (it won't change anything live until you generate and paste the code).")) {
+        return;
+      }
+      Object.keys(workingOverrides).forEach((prop) => {
+        workingOverrides[prop] = {};
+      });
+      allParInputs.forEach(({ input, defaultPar }) => {
+        input.value = defaultPar;
+        input.classList.remove("admin-overridden");
+      });
+      updateChangeCount();
+    });
+
+    function generateFileContents() {
+      const lines = [];
+      lines.push("/**");
+      lines.push(" * Custom par (minimum) levels, per property, for every cleaner's site.");
+      lines.push(" *");
+      lines.push(" * Each property name below is a key. Inside it, list only the items you");
+      lines.push(" * want to override — anything you leave out just uses the default \"par\"");
+      lines.push(" * value set in items.js. An empty {} means \"use all the defaults.\"");
+      lines.push(" *");
+      lines.push(" * This file is meant to be edited from admin.html — open that page,");
+      lines.push(" * adjust numbers there, and it will generate an updated version of this");
+      lines.push(" * file for you to paste back in. You can also edit it by hand here if");
+      lines.push(" * you prefer; the format is the same either way.");
+      lines.push(" */");
+      lines.push("const PAR_OVERRIDES = {");
+
+      const propKeys = Object.keys(workingOverrides);
+      propKeys.forEach((prop, propIndex) => {
+        const overrides = workingOverrides[prop];
+        const itemKeys = Object.keys(overrides);
+        const propComma = propIndex < propKeys.length - 1 ? "," : "";
+
+        if (itemKeys.length === 0) {
+          lines.push('  "' + prop.replace(/"/g, '\\"') + '": {}' + propComma);
+        } else {
+          lines.push('  "' + prop.replace(/"/g, '\\"') + '": {');
+          itemKeys.forEach((itemKey, itemIndex) => {
+            const itemComma = itemIndex < itemKeys.length - 1 ? "," : "";
+            lines.push('    "' + itemKey.replace(/"/g, '\\"') + '": ' + overrides[itemKey] + itemComma);
+          });
+          lines.push("  }" + propComma);
+        }
+      });
+
+      lines.push("};");
+      lines.push("");
+      lines.push("// Looks up the effective par for an item at a given property — the");
+      lines.push("// property's custom number above if one is set, otherwise the default");
+      lines.push("// from items.js.");
+      lines.push("function parFor(propertyName, itemNameKey, defaultPar) {");
+      lines.push("  const overrides = PAR_OVERRIDES[propertyName];");
+      lines.push("  if (overrides && Object.prototype.hasOwnProperty.call(overrides, itemNameKey)) {");
+      lines.push("    return overrides[itemNameKey];");
+      lines.push("  }");
+      lines.push("  return defaultPar;");
+      lines.push("}");
+      lines.push("");
+
+      return lines.join("\n");
+    }
+
+    document.getElementById("admin-generate-btn").addEventListener("click", () => {
+      const output = document.getElementById("admin-output");
+      output.value = generateFileContents();
+      document.getElementById("admin-output-wrap").style.display = "block";
+      document.getElementById("admin-output-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    document.getElementById("admin-copy-btn").addEventListener("click", () => {
+      const output = document.getElementById("admin-output");
+      output.select();
+      const confirmEl = document.getElementById("admin-copy-confirm");
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(output.value)
+          .then(() => { confirmEl.textContent = "Copied!"; setTimeout(() => confirmEl.textContent = "", 2000); })
+          .catch(() => { confirmEl.textContent = "Couldn't copy automatically — text is selected, use Cmd+C."; });
+      } else {
+        confirmEl.textContent = "Text is selected — use Cmd+C to copy.";
+      }
+    });
+
+    updateChangeCount();
+  </script>
+</body>
+</html>
